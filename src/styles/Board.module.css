@@ -1,0 +1,44 @@
+.Board-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.Board-row-container {
+  display: flex;
+}
+
+.move-dest {
+  /* background: radial-gradient(rgba(20, 85, 30, 0.5) 19%, rgba(0, 0, 0, 0) 20%); */
+  /* kanagawa orange */
+  background: radial-gradient(rgba(207, 139, 94, 0.6) 19%, rgba(0, 0, 0, 0) 20%);
+  pointer-events: auto;
+  border: 2px solid red;
+}
+
+.capture {
+  /* background: radial-gradient(transparent 0%, transparent 79%, rgba(20, 85, 0, 0.3) 80%); */
+  /* kanagawa orange */
+  background: radial-gradient(transparent 0%, transparent 79%, rgba(207, 139, 94, 0.6) 80%);
+}
+
+.check {
+  background: radial-gradient(ellipse at center, rgb(255, 0, 0) 0%, rgb(231, 0, 0) 25%, rgba(169, 0, 0, 0) 89%, rgba(158, 0, 0, 0) 100%);
+}
+
+.square {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 10vmin;
+  width: 10vmin;
+  border: none;
+  cursor: pointer;
+}
+
+.promotion {
+  position: absolute;
+  transform-origin: top left;
+  background: rgba(0, 0, 0, 0.5); /* transparent grey background */
+}

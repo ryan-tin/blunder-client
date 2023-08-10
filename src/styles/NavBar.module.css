@@ -1,0 +1,24 @@
+.NavBar {
+  display: flex;
+  justify-content: space-between;
+  color: white;
+}
+
+.Link {
+  color: #fff;
+  text-decoration: none;
+  margin: 20px;
+}
+
+.BlunderLink {
+  font-size: calc(10px + 2vmin);
+}
+
+.SublinkContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* border: 10px solid red; */
+  font-size: 2vim;
+}
+

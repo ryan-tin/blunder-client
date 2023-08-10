@@ -1,0 +1,22 @@
+.App {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  min-height: 100vh;
+}
+
+.game-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+
+.panel-container {
+  display: flex;
+  justify-content: center;
+}
+
+.checkmate {
+  color: white;
+}
