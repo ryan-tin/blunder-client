@@ -1,0 +1,12 @@
+.centered-row-flex {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.centered-column-flex {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
