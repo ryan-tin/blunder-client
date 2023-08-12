@@ -42,3 +42,17 @@
   margin: 10px;
   font-size: 20px;
 }
+
+.lobby-games-container {
+  display: flex;
+  flex-direction: column;
+  height: 55vh;
+  width: auto;
+  border: 2px solid grey;
+  margin-left: 20px;
+}
+
+.lobby-row {
+  color: white;
+  font-size: 20px;
+}

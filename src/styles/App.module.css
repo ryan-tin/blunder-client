@@ -20,3 +20,15 @@
 .checkmate {
   color: white;
 }
+
+.home-lobby {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.home-navbar {
+  position: absolute;
+  width: 100vw;
+}

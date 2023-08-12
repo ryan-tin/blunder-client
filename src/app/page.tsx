@@ -5,8 +5,14 @@ import styles from '@/styles/App.module.css';
 export default function Home() {
   return (
     <main className={styles.App}>
-      <NavBar />
-      <Lobby />
+      <div
+        className={styles['home-navbar']}
+      >
+        <NavBar />
+      </div>
+      <div className={styles['home-lobby']}>
+        <Lobby />
+      </div>
     </main>
   )
 }
