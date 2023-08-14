@@ -19,9 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-      <div
-        className={styles['home-navbar']}
-      >
+      <div>
         <NavBar />
       </div>
         {children}

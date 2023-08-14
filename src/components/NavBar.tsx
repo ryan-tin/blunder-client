@@ -15,7 +15,7 @@ export default function NavBar() {
 
       <div className={styles.SublinkContainer}>
         <Link
-          href='/'
+          href='/login'
           className={styles.Link}
           target="_self"
         >
