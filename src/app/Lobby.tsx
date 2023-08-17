@@ -4,43 +4,25 @@ import { useState } from "react";
 import Image from "next/image";
 import styles from '@/styles/Lobby.module.css';
 import commonStyles from '@/styles/common.module.css';
-import Slider from '@mui/material/Slider';
-import Box from "@mui/material/Box";
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
+import { Slider, Box } from '@mui/material';
+import { Session, createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import LobbyGames from '@/app/realtime-lobby';
 
-export default function Lobby() {
-  const [gameCreated, setGameCreated] = useState(false);
-  const [gameRows, setGameRows] = useState([] as gameRow[]);
-
+export default function Lobby({ session, lobbyGames }:
+  { session: Session | null, lobbyGames: any[] | null }
+) {
+  const supabase = createClientComponentClient();
   // selected values from sliders
   const [timePerSide, setTimePerSide] = useState(3);
   const [increment, setIncrement] = useState(5);
 
-  function handleTimeChange(e: React.SyntheticEvent, value: number) {
-    setTimePerSide(value);
-  }
-
-  function handleIncrementChange(e: React.SyntheticEvent, value: number) {
-    setIncrement(value);
-  }
-
-  function handleSelectSide(e: any) {
-    // TODO: add username
+  async function handleSelectSide(e: any) {
     let side = '';
-
     if (e.target.type === 'submit') {
       // random color picked
       const whiteProb = Math.random();
-      if (whiteProb > 0.5) {
-        side = 'white';
-      } else {
-        side = 'black';
-      }
+      if (whiteProb > 0.5) { side = 'white'; }
+      else { side = 'black'; }
     }
     else if (e.target.alt === undefined) {
       return;
@@ -50,98 +32,86 @@ export default function Lobby() {
     } else if (e.target.alt.includes('Black')) {
       side = 'black';
     }
-    e.stopPropagation();
+    const portNum = await findUniquePort();
 
-    setGameRows([...gameRows, {
-      time: `${timePerSide} + ${increment}`,
-      name: 'todo',
-      side: side
-    }]);
+    // insert row into database
+    try {
+      const { error } = await supabase
+        .from('lobby')
+        .insert({
+          port_num: portNum,
+          side: side,
+          time: timePerSide,
+          increment: increment,
+          user_id: session?.user?.id
+        })
+
+      if (error) { throw error; }
+    } catch (error) {
+      console.log(error)
+    }
+
+    e.stopPropagation();
+  }
+
+  function handleTimeChange(e: React.SyntheticEvent, value: number) {
+    setTimePerSide(value);
+    e.stopPropagation();
+  }
+
+  function handleIncrementChange(e: React.SyntheticEvent, value: number) {
+    setIncrement(value);
+    e.stopPropagation();
+  }
+
+  function generateRandomPort(min: number, max: number) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  async function checkPortExists(portNum: number) {
+    const { data, error } = await supabase
+      .from('lobby')
+      .select()
+      .eq("port_num", portNum);
+
+    if (error) {
+      throw error;
+    }
+
+    return data.length > 0;
+  }
+
+  // async loop to check for port
+  async function findUniquePort() {
+    while (true) {
+      const randomPort = generateRandomPort(50000, 60000);
+      const valueExists = await checkPortExists(randomPort);
+      if (!valueExists) {
+        return randomPort;
+      }
+    }
   }
 
   return (
     <div className={commonStyles['centered-row-flex']}>
       <CreateGame
-        showButton={!gameCreated}
         handleTimeChange={handleTimeChange}
         handleIncrementChange={handleIncrementChange}
         handleSelectSide={handleSelectSide}
       />
-      <LobbyGames gameRows={gameRows} />
-    </div>
-  );
-}
-
-interface gameRow {
-  name: string;
-  time: string;
-  side: string;
-}
-
-interface LobbyGamesProps {
-  gameRows: gameRow[];
-}
-
-function LobbyGames({ gameRows }: LobbyGamesProps) {
-  let rows: gameRow[] = gameRows;
-  return (
-    <div className={styles['lobby-games-container']}>
-      <TableContainer>
-        <Table sx={{
-          minWidth: 650,
-        }} aria-label="simple table">
-          <TableHead>
-            <TableRow>
-              <TableCell>
-                <p className={styles['lobby-row']}>Name</p>
-              </TableCell>
-              <TableCell align="right">
-                <p className={styles['lobby-row']}>Time</p>
-              </TableCell>
-              <TableCell align="right">
-                <p className={styles['lobby-row']}>Side</p>
-              </TableCell>
-            </TableRow>
-
-          </TableHead>
-          <TableBody>
-            {rows.map((row) => {
-              // TODO: set key as socketid
-              const randomKey = Math.random().toString(36).slice(2);
-              return (
-                <TableRow
-                  key={randomKey}
-                  sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-                >
-                  <TableCell component="th" scope="row">
-                    <p className={styles['lobby-row']}> {row.name} </p>
-                  </TableCell>
-                  <TableCell align="right">
-                    <p className={styles['lobby-row']}> {row.time} </p>
-                  </TableCell>
-                  <TableCell align="right">
-                    <p className={styles['lobby-row']}> {row.side} </p>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      <LobbyGames gameRows={lobbyGames} />
     </div>
   );
 }
 
 function CreateGame(
   {
-    showButton,
     handleTimeChange,
     handleIncrementChange,
     handleSelectSide
   }
     :
     {
-      showButton: boolean,
       handleTimeChange: Function,
       handleIncrementChange: Function,
       handleSelectSide: Function
@@ -153,13 +123,12 @@ function CreateGame(
     <div
       className={commonStyles['centered-column-flex']}
     >
-      {showButton &&
-        <button
-          className={styles['create-game-button']}
-          onClick={() => setShowGameOptions(!showGameOptions)}
-        >
-          Create Game
-        </button>}
+      <button
+        className={styles['create-game-button']}
+        onClick={() => setShowGameOptions(!showGameOptions)}
+      >
+        Create Game
+      </button>
       {showGameOptions &&
         <GameOptions
           handleTimeChange={handleTimeChange}
