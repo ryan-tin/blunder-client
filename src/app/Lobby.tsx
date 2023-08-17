@@ -99,7 +99,7 @@ export default function Lobby({ session, lobbyGames }:
         handleIncrementChange={handleIncrementChange}
         handleSelectSide={handleSelectSide}
       />
-      <LobbyGames gameRows={lobbyGames} />
+      <LobbyGames gameRows={lobbyGames} session={session}/>
     </div>
   );
 }

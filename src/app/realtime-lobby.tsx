@@ -1,60 +1,100 @@
 'use client'
 
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { Session, createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useEffect, useState } from "react";
 import styles from '@/styles/Lobby.module.css';
 import { TableContainer, Table, TableHead, TableRow, TableCell, TableBody } from '@mui/material';
+// import { makeStyles } from '@mui/styles';
+//
+// const useStyles = makeStyles((theme) => ({
+//   row: {
+//     '&:hover': {
+//       backgroundColor: theme.palette.action.hover,
+//     },
+//   },
+// }));
 
-export default function LobbyGames({ gameRows }: { gameRows: any }) {
+export default function LobbyGames({ session, gameRows }:
+  { session: Session | null, gameRows: any }
+) {
   const supabase = createClientComponentClient();
   const [rows, setRows] = useState(gameRows);
 
   // refresh page if 'lobby' database changes
   useEffect(() => {
-    const channel = supabase.channel('realtime lobby').on('postgres_changes', {
-      event: '*', // listen to all Inserts, Updates, and Deletes
-      schema: 'public',
-      table: 'lobby'
-    }, (payload: any) => {
-      const fetchUsername = async (userId: any) => {
-        const { data } = await supabase.from('profiles').select('username').eq('id', userId)
-        return data;
-      }
+    const insertChannel = supabase.channel('realtime lobby inserts')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'lobby'
+      }, (payload: any) => {
+        const fetchUsername = async (userId: any) => {
+          const { data } = await supabase.from('profiles').select('username').eq('id', userId)
+          return data;
+        }
 
-      let username;
-      fetchUsername(payload.new.user_id).then((data) => {
-        username = data![0].username;
-        setRows([...rows,
-        {
-          ...payload.new,
-          profiles: {
-            username: username
-          }
-        }])
-      });
+        let username;
+        fetchUsername(payload.new.user_id).then((data) => {
+          username = data![0].username;
+          setRows([...rows,
+          {
+            ...payload.new,
+            profiles: {
+              username: username
+            }
+          }])
+        });
 
-    }).subscribe()
+      }).subscribe()
+
+    const deleteChannel = supabase.channel('realtime lobby deletes')
+      .on('postgres_changes', {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'lobby'
+      }, (payload: any) => {
+        setRows(rows.filter((row: any) => row.id !== payload.old.id))
+      }).subscribe()
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(insertChannel);
+      supabase.removeChannel(deleteChannel);
     }
   }, [rows, supabase])
 
-  function handleGameClick(e: any) {
-    // TODO: cannot join own game!
-    console.log('a game has been clicked!');
+  async function deleteGame(row: any) {
+    const { error } = await supabase.from('lobby').delete().eq('id', row.id);
+    if (error) {
+      // console.log(error);
+      throw error;
+    }
+  }
+
+  function handleGameClick(e: any, row: any) {
+    const yourGame = row.user_id === session?.user.id;
+    if (yourGame) {
+      // delete your own game
+      deleteGame(row);
+    } else {
+      // join game
+      console.log('join');
+      // console.log(window.location.host);
+      // window.location.assign(`${window.location.host}/:${row.port_num}`)
+    }
     // TODO: redirect to the game
+    // how to automaticaaly join game once opponent joins?
     // window.location.assign("http://localhost:3000/");
     e.stopPropagation();
   }
 
-  // TODO: feat: cancel game if its your own 
   return (
     <div className={styles['lobby-games-container']}>
       <TableContainer>
         <Table sx={{
           minWidth: 650,
-        }} aria-label="simple table">
+        }}
+          size="small"
+        >
           <TableHead>
             <TableRow>
               <TableCell>
@@ -66,9 +106,11 @@ export default function LobbyGames({ gameRows }: { gameRows: any }) {
               <TableCell align="right">
                 <p className={styles['lobby-row']}>Your/Opponent Side</p>
               </TableCell>
-              <TableCell align="right">
-                <p className={styles['lobby-row']}>Action</p>
-              </TableCell>
+              {
+                // <TableCell align="right">
+                //   <p className={styles['lobby-row']}>Action</p>
+                //   </TableCell>
+              }
             </TableRow>
           </TableHead>
           <TableBody>
@@ -76,7 +118,10 @@ export default function LobbyGames({ gameRows }: { gameRows: any }) {
               return (
                 <TableRow
                   key={row.id}
-                  sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                  sx={{
+                    ":hover": { backgroundColor: "var(--custom-color-brand)" }
+                  }}
+                  onClick={(e) => handleGameClick(e, row)}
                 >
                   <TableCell component="th" scope="row">
                     <p className={styles['lobby-row']}> {row.profiles.username} </p>
@@ -86,9 +131,6 @@ export default function LobbyGames({ gameRows }: { gameRows: any }) {
                   </TableCell>
                   <TableCell align="right">
                     <p className={styles['lobby-row']}> {row.side} </p>
-                  </TableCell>
-                  <TableCell align="right">
-                    <button onClick={(e) => handleGameClick(e)}>Join</button>
                   </TableCell>
                 </TableRow>
               )

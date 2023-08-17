@@ -13,8 +13,7 @@ export default async function Home() {
 
 
   let { data: gameRows, error } = await supabase
-    .from('lobby')
-    .select(` id, port_num, side, time, increment, profiles (username) `);
+    .from('lobby').select('*, profiles (username)');
 
   if (error) {
     console.log(error)
