@@ -2,7 +2,6 @@ import { boardType, coordinateType, playerType, validMovesBoardType, } from "../
 import { isEnemyPiece } from "./validMoves";
 import * as Bounds from './boardBounds';
 
-// TODO: promotion
 export function findValidPawnMoves(
   currentPosition: string,
   board: boardType,

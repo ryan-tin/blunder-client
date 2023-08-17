@@ -4,15 +4,6 @@ import { Session, createClientComponentClient } from "@supabase/auth-helpers-nex
 import { useEffect, useState } from "react";
 import styles from '@/styles/Lobby.module.css';
 import { TableContainer, Table, TableHead, TableRow, TableCell, TableBody } from '@mui/material';
-// import { makeStyles } from '@mui/styles';
-//
-// const useStyles = makeStyles((theme) => ({
-//   row: {
-//     '&:hover': {
-//       backgroundColor: theme.palette.action.hover,
-//     },
-//   },
-// }));
 
 export default function LobbyGames({ session, gameRows }:
   { session: Session | null, gameRows: any }
