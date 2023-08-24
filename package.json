@@ -27,6 +27,6 @@
     "@supabase/auth-ui-react": "^0.4.2",
     "@supabase/auth-ui-shared": "^0.1.6",
     "@supabase/supabase-js": "^2.32.0",
-    "socket.io": "^4.7.2"
+    "socket.io-client": "^4.7.2"
   }
 }
