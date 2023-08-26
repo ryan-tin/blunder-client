@@ -32,6 +32,7 @@ export default function Knight(props: pieceProps) {
     className={styles.Piece}
     id={props.coordinates as string}
     onClick={handleClick}
+    priority={true}
   />
 
 }
