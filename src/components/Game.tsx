@@ -1,30 +1,58 @@
+'use client'
+
 import { playerType } from "@/types/Types";
 import Board from "./Board";
+import { io } from "socket.io-client";
+import { useEffect, useState } from "react";
 
 interface GameProps {
   perspective: playerType;
+  roomId: string;
 }
 
-export default function Game({ perspective }: GameProps) {
-  // const startingFEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-  // const startingFEN = 'r3k2r/6b1/8/8/8/8/P7/R3K2R w KQkq - 0 1'; // debug castling
-  // const startingFEN = '8/q7/8/8/8/8/8/8 w KQkq - 0 1'; // empty board
-  // const startingFEN = '4k3/q7/8/8/8/8/Q7/4K3 w KQkq - 0 1';
-  // const startingFEN = 'k7/8/8/1p4P1/8/8/8/7K w KQkq - 0 1';
-  // const startingFEN = '1k6/1pp5/8/Qn6/N7/8/8/R5K1 w - - 0 1'; // double check and checkmate test
-  // const startingFEN = '6rk/6pp/8/8/8/8/2B4Q/7K w - - 0 1'; // checkmate for white
-  // const startingFEN = '4k3/pppppppp/8/8/8/8/PPPPPPPP/K7 w KQkq - 0 1'; // en passant
-  // const startingFEN = '7r/8/8/8/7q/8/5PP1/6K1 b - - 0 1'; // black chekmate
-  // const startingFEN = 'rnbqkbnr/8/8/8/8/8/8/RNBQK2R b KQkq - 0 1'; // castling through check
-  const startingFEN = '4k2r/5Pb1/8/8/8/8/P7/R3K2R w KQkq - 0 1'; // white promotion
-  // const startingFEN = '4k2r/5pb1/8/8/8/8/p7/13K2R b KQkq - 0 1'; // black promotion
+export default function Game({ perspective, roomId }: GameProps) {
+  const startingFEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+  const [FEN, setFEN] = useState(startingFEN);
+  const socket = io(`http://localhost:60001/game`);
+
+  useEffect(() => {
+    socket.on('connect', () => {
+      console.log(`connected to socket ${socket.id}`);
+    })
+
+    socket.emit('join room', roomId);
+
+    socket.on('send move', (FEN: string) => {
+      // TODO: send the new FEN to Board
+      console.log('message', FEN);
+    })
+
+    socket.on('disconnect', (reason) => {
+      if (reason === 'io server disconnect') {
+        socket.connect();
+      }
+    })
+
+    return () => {
+        socket.close();
+    }
+  }, [roomId, socket]);
+
+  // TEST: 
+  function handleClick() {
+    socket.emit('send move', { roomId: roomId, FEN: "testFEN" });
+  }
 
   return (
     <div>
-      <Board
-        startingPosition={startingFEN}
-        perspective={perspective}
-      />
+      <button onClick={handleClick}>Click to send message</button>
+      {
+        // <Board
+        //   FEN={FEN}
+        //   perspective={perspective}
+        //   sendMove={handleSendNextMove}
+        // />
+      }
     </div>
   );
 }
