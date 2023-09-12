@@ -105,9 +105,10 @@ export function componentsToFEN(
   * @returns {playerType} - 'w' for white and 'b' for black
   */
 export function nextPlayer(previous: string): playerType {
+  console.log('previous', previous);
   const lastPlayer = previous.split(' ')[1];
-  const currentPlayer = lastPlayer === 'w' ? 'b' : 'w';
-  return currentPlayer;
+  const nextPlayer = lastPlayer === 'w' ? 'b' : 'w';
+  return nextPlayer;
 }
 
 /**
