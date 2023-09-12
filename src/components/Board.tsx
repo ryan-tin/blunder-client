@@ -5,25 +5,46 @@ import Square from './Square';
 import Piece from './pieces//Piece';
 import Panel, { PanelProps } from './Panel';
 import Promotion from './Promotion';
-import { boardType, coordinateType, pieceType, playerType, validMovesBoardType } from '../types/Types';
-import { findControlledSquares, findValidMoves, handleFindValidMoves, isBlackPiece, isEnemyPiece, isWhitePiece } from '../utils/validMoves';
-import { componentsToFEN, getEnPassantTargetSquare, getFullMoveNumber, getHalfMoveClock, newCastlingFENPostRookOrKingMove, nextPlayer, parseFENString } from '../utils/fen';
+import {
+  boardType,
+  coordinateType,
+  pieceType,
+  playerType,
+  validMovesBoardType
+} from '../types/Types';
+import {
+  findControlledSquares,
+  findValidMoves,
+  handleFindValidMoves,
+  isBlackPiece,
+  isEnemyPiece,
+  isWhitePiece
+} from '../utils/validMoves';
+import {
+  componentsToFEN,
+  getEnPassantTargetSquare,
+  getFullMoveNumber,
+  getHalfMoveClock,
+  newCastlingFENPostRookOrKingMove,
+  nextPlayer,
+  parseFENString
+} from '../utils/fen';
 import boardstyles from '@/styles/Board.module.css';
 
 interface boardProps {
-  startingPosition: string;
+  FEN: string;
   perspective: playerType;
+  sendMove: Function;
 }
 
+const DEBUG = true;
+
 export default function Board(props: boardProps) {
-  const [FEN, setFEN] = useState(props.startingPosition)
-  // console.log(FEN);
-  // useEffect(() => {
-  //   console.log(FEN);
-  // }, [FEN])
+  // const [FEN, setFEN] = useState(props.FEN)
+  const FEN = props.FEN
 
   let [position, onMove, castlingFEN, enPassantTargetSquare,
-    halfmoveClock, fullmoveNumber] = parseFENString(FEN);
+    halfmoveClock, fullmoveNumber] = parseFENString(props.FEN);
 
   // Map containing valid moves
   // key is a string, the 'row,col' of the move
@@ -138,8 +159,17 @@ export default function Board(props: boardProps) {
     return boardSquares;
   }
 
+  // prepare the board from white's perspective
   function prepareWhiteBoard() {
     let boardSquares = [];
+    // these abbreviations represent the possible moves, 
+    // m - move
+    // K - white kingside castle
+    // Q - white queenside castle
+    // k - black kingside castle
+    // q - black queenside castle
+    // e - enpassant
+    const validMoveAbbrevs = ['m', 'K', 'Q', 'k', 'q', 'e'];
 
     for (let row = 7; row >= 0; row--) {
       let boardRow = [];
@@ -148,13 +178,15 @@ export default function Board(props: boardProps) {
         let hasPiece = position.has(currentPosition);
         let piece: any = hasPiece ? position.get(currentPosition) : "";
 
-        let validPossibilities = ['m', 'K', 'Q', 'k', 'q', 'e'];
-        let isValid = false;
-        if (validMoves.has(currentPosition)) {
-          for (let move of validPossibilities) {
-            if (validMoves.get(currentPosition) === move) {
-              isValid = true;
-              break;
+        let isValidMove = false;
+        // player can only move their own piece
+        if (onMove === 'w') {
+          if (validMoves.has(currentPosition)) {
+            for (let move of validMoveAbbrevs) {
+              if (validMoves.get(currentPosition) === move) {
+                isValidMove = true;
+                break;
+              }
             }
           }
         }
@@ -163,6 +195,7 @@ export default function Board(props: boardProps) {
           validMoves.has(currentPosition) &&
           (
             validMoves.get(currentPosition) === 'x'
+            // castling shares the same visual graphic as a capture
             || (validMoves.get(currentPosition) === 'K' && currentPosition === '0,7')
             || (validMoves.get(currentPosition) === 'Q' && currentPosition === '0,0')
             || (validMoves.get(currentPosition) === 'k' && currentPosition === '7,7')
@@ -181,7 +214,7 @@ export default function Board(props: boardProps) {
           <span key={value} >
             <Square
               key={value} value={value} row={row} col={col}
-              isValidMove={isValid}
+              isValidMove={isValidMove}
               isSelected={selectedPiece === currentPosition}
               canCapture={canCapture}
               inCheck={checkPosition === currentPosition}
@@ -193,7 +226,9 @@ export default function Board(props: boardProps) {
         );
       }
       boardSquares.push(
-        <div key={row} className={boardstyles["Board-row-container"]}> {boardRow} </div>
+        <div key={row} className={boardstyles["Board-row-container"]}>
+          {boardRow}
+        </div>
       )
     }
     return boardSquares;
@@ -201,6 +236,7 @@ export default function Board(props: boardProps) {
 
   function prepareBlackBoard() {
     let boardSquares = [];
+    const validMoveAbbrevs = ['m', 'K', 'Q', 'k', 'q', 'e'];
 
     for (let row = 0; row < 8; row++) {
       const boardRow = [];
@@ -211,14 +247,15 @@ export default function Board(props: boardProps) {
         const hasPiece = position.has(currentPosition);
         const piece: any = hasPiece ? position.get(currentPosition) : "";
 
-        // and whether this is a valid move (if a piece is clicked)
-        let validPossibilities = ['m', 'K', 'Q', 'k', 'q', 'e'];
-        let isValid = false;
-        if (validMoves.has(currentPosition)) {
-          for (let move of validPossibilities) {
-            if (validMoves.get(currentPosition) === move) {
-              isValid = true;
-              break;
+        let isValidMove = false;
+        if (onMove === 'b') {
+          // and whether this is a valid move (if a piece is clicked)
+          if (validMoves.has(currentPosition)) {
+            for (let move of validMoveAbbrevs) {
+              if (validMoves.get(currentPosition) === move) {
+                isValidMove = true;
+                break;
+              }
             }
           }
         }
@@ -245,7 +282,7 @@ export default function Board(props: boardProps) {
           <span key={value} >
             <Square
               key={value} value={value} row={row} col={col}
-              isValidMove={isValid}
+              isValidMove={isValidMove}
               isSelected={selectedPiece === currentPosition}
               canCapture={canCapture}
               inCheck={checkPosition === currentPosition}
@@ -256,7 +293,9 @@ export default function Board(props: boardProps) {
         );
       }
       boardSquares.push(
-        <div key={row} className={boardstyles["Board-row-container"]}> {boardRow} </div>
+        <div key={row} className={boardstyles["Board-row-container"]}>
+          {boardRow}
+        </div>
       )
     }
     return boardSquares;
@@ -350,8 +389,7 @@ export default function Board(props: boardProps) {
       getFullMoveNumber(FEN)
     );
     // set new FEN to update the board position
-    setFEN(newFENString);
-
+    props.sendMove(newFENString);
     clear();
     setControlledSquares(getControlledSquares(nextPosition));
   }
@@ -393,18 +431,15 @@ export default function Board(props: boardProps) {
       getFullMoveNumber(FEN)
     );
     // set new FEN to update the board position
-    setFEN(newFENString);
+    props.sendMove(newFENString);
   }
 
   /**
    * Returns a map of the controlled squares in the current position
-   * after the last move
    */
   function getControlledSquares(nextPosition: boardType) {
-
     let controlledSquares = new Map() as validMovesBoardType;
     for (let [coord, piece] of nextPosition) {
-      // how to tell which piece is an enemy piece?
       if (!isEnemyPiece(onMove, nextPosition, coord)) {
         const mapToAdd = findControlledSquares(coord, piece, nextPosition);
         controlledSquares = new Map([...controlledSquares, ...mapToAdd]);
@@ -435,7 +470,6 @@ export default function Board(props: boardProps) {
     // promotion move
     if (source.includes('promotion')) {
       // remove the pawn and replace it with the piece
-      console.log(event.target.alt);
       let piece = undefined;
       if (/Queen/.test(event.target.alt)) {
         piece = onMove === 'b' ? 'Q' : 'q';
@@ -460,18 +494,17 @@ export default function Board(props: boardProps) {
           fullmoveNumber
         );
         setShowPromotion(false);
-        onMove = onMove === 'w' ? 'b' : 'w';
+        onMove = onMove === 'w' ? 'b' : 'w'; // HACK:
         setControlledSquares(getControlledSquares(nextPosition));
-        setFEN(nextFENString);
+        props.sendMove(nextFENString);
       }
-
     }
     // valid castling move is clicked
     else if (castle) {
       castleKing(currentPosition);
     }
     // if a valid Move is clicked, move the piece there
-    else if (validMoves.has(currentPosition)) {
+    else if (validMoves.has(currentPosition) && props.perspective === onMove) {
       const piece = position.get(selectedPiece);
       const rankMatcher = /(?<rank>[\d]),[\d]/.exec(currentPosition);
       const rank = rankMatcher!.groups!.rank;
@@ -500,7 +533,8 @@ export default function Board(props: boardProps) {
       (
         (onMove === 'w' && isWhitePiece(position.get(currentPosition)))
         || (onMove === 'b' && isBlackPiece(position.get(currentPosition)))
-      )
+      ) &&
+      (props.perspective === onMove)
     ) {
       let nextValidMoves = handleFindValidMoves(
         event.target,
@@ -567,6 +601,7 @@ export default function Board(props: boardProps) {
 
   return (
     <div>
+      {DEBUG && <p>{FEN}</p>}
       <div
         onClick={handleClick}
       >

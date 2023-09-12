@@ -13,7 +13,7 @@ interface GameProps {
 export default function Game({ perspective, roomId }: GameProps) {
   const startingFEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
   const [FEN, setFEN] = useState(startingFEN);
-  const socket = io(`http://localhost:60001/game`);
+  const [socket, setSocket] = useState(io(`http://localhost:60001/game`));
 
   useEffect(() => {
     socket.on('connect', () => {
@@ -22,9 +22,10 @@ export default function Game({ perspective, roomId }: GameProps) {
 
     socket.emit('join room', roomId);
 
-    socket.on('send move', (FEN: string) => {
-      // TODO: send the new FEN to Board
-      console.log('message', FEN);
+    // listen for opponent moves
+    socket.on('send move', (newFEN: string) => {
+      // opponent sent FEN, update board
+      setFEN(newFEN);
     })
 
     socket.on('disconnect', (reason) => {
@@ -34,25 +35,25 @@ export default function Game({ perspective, roomId }: GameProps) {
     })
 
     return () => {
-        socket.close();
+      socket.close();
     }
-  }, [roomId, socket]);
+  }, []);
 
-  // TEST: 
-  function handleClick() {
-    socket.emit('send move', { roomId: roomId, FEN: "testFEN" });
+  // send move to opponent
+  function handleSendNextMove(newFEN: string) {
+    // send FEN to opponent
+    socket.emit('send move', { roomId: roomId, FEN: newFEN });
+    // update own board
+    setFEN(newFEN);
   }
 
   return (
     <div>
-      <button onClick={handleClick}>Click to send message</button>
-      {
-        // <Board
-        //   FEN={FEN}
-        //   perspective={perspective}
-        //   sendMove={handleSendNextMove}
-        // />
-      }
+      <Board
+        FEN={FEN}
+        perspective={perspective}
+        sendMove={handleSendNextMove}
+      />
     </div>
   );
 }
