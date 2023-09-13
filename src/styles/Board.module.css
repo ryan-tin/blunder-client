@@ -37,8 +37,20 @@
   cursor: pointer;
 }
 
+.promotion-parent {
+  position: relative;
+}
+
 .promotion {
+  /* Absolute positioning bases the element’s position relative to the nearest  */
+  /* parent element that has position: relative. If it can’t find one, it will be */
+  /* relative to the document. Add top: 50%; left: 50%; because the position is */
+  /* calculated from the top left corner. */
+  /* You must pull back the item with the half of its width and height. */
+  /* You can achieve this with transform: translate(-50%, -50%); */
   position: absolute;
-  transform-origin: top left;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%); /* shift left */
   background: rgba(0, 0, 0, 0.5); /* transparent grey background */
 }

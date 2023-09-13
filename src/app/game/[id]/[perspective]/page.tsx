@@ -7,7 +7,6 @@ export default function GameRoom({ params }: {
     perspective: string
   }
 }) {
-  // console.log('params', params);
 
   return (
     <main>

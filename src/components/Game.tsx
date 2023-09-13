@@ -1,9 +1,10 @@
 'use client'
 
 import { playerType } from "@/types/Types";
-import Board from "./Board";
+import Board from "@/components/Board";
 import { io } from "socket.io-client";
 import { useEffect, useState } from "react";
+import { Processor } from '@/utils/Processor';
 
 interface GameProps {
   perspective: playerType;
@@ -14,6 +15,7 @@ export default function Game({ perspective, roomId }: GameProps) {
   const startingFEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
   const [FEN, setFEN] = useState(startingFEN);
   const [socket, setSocket] = useState(io(`http://localhost:60001/game`));
+  const processor = Processor.Instance;
 
   useEffect(() => {
     socket.on('connect', () => {
@@ -26,6 +28,7 @@ export default function Game({ perspective, roomId }: GameProps) {
     socket.on('send move', (newFEN: string) => {
       // opponent sent FEN, update board
       setFEN(newFEN);
+      processor.FEN = newFEN;
     })
 
     socket.on('disconnect', (reason) => {
@@ -45,6 +48,7 @@ export default function Game({ perspective, roomId }: GameProps) {
     socket.emit('send move', { roomId: roomId, FEN: newFEN });
     // update own board
     setFEN(newFEN);
+    processor.FEN = newFEN;
   }
 
   return (

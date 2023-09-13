@@ -1,5 +1,14 @@
-import { boardType, coordinateType, pieceType, playerType } from "../types/Types";
+import {
+  boardType,
+  coordinateType,
+  pieceType,
+  playerType,
+  castlingFEN,
+  boardSquare
+} from "@/types/Types";
 import { isLetter } from "./regex";
+
+// TODO: delete this once Processor is ready
 
 // parse a FEN string, and prepare it to represent the position on the board.
 // see source below for detailed info about each of the FEN string's components
@@ -23,6 +32,27 @@ export function parseFENStringBoardPosition(fen: string): boardType {
   return position;
 }
 
+export function parseFENPositionToMap(fenPosition: string): boardType {
+  let fenBoard = fenPosition.split("/");
+  let position: boardType = new Map();
+  let row = 8;
+  for (let rank of fenBoard) {
+    let col = 0;
+    row--;
+    for (let char of rank) {
+      if (isLetter(char)) {
+        position.set(`${row},${col}` as coordinateType, char as pieceType);
+        col++;
+      } else {
+        col += parseInt(char);
+      }
+    }
+  }
+  return position;
+}
+
+// TODO: delete this once Processor is ready
+
 // parses the FEN string with the helper methods and returns
 export function parseFENString(fen: string): [boardType, playerType, string, string, number, string] {
   let fenComponents = fen.split(" ");
@@ -32,6 +62,21 @@ export function parseFENString(fen: string): [boardType, playerType, string, str
   let enPassantTargetSquare = fenComponents[3];
   let halfmoveClock = parseInt(fenComponents[4]);
   let fullmoveNumber = fenComponents[5];
+
+  return [position, onMove, castlingAvailability, enPassantTargetSquare,
+    halfmoveClock, fullmoveNumber];
+}
+
+// parses the FEN string into its ocmponents
+export function parseFENString2(fen: string):
+  [string, playerType, castlingFEN, boardSquare, number, number] {
+  let fenComponents = fen.split(" ");
+  const position = fenComponents[0];
+  const onMove: playerType = fenComponents[1] as playerType;
+  const castlingAvailability: castlingFEN = fenComponents[2] as castlingFEN;
+  const enPassantTargetSquare: boardSquare = fenComponents[3] as boardSquare;
+  const halfmoveClock = parseInt(fenComponents[4]);
+  const fullmoveNumber = parseInt(fenComponents[5]);
 
   return [position, onMove, castlingAvailability, enPassantTargetSquare,
     halfmoveClock, fullmoveNumber];
@@ -105,7 +150,6 @@ export function componentsToFEN(
   * @returns {playerType} - 'w' for white and 'b' for black
   */
 export function nextPlayer(previous: string): playerType {
-  console.log('previous', previous);
   const lastPlayer = previous.split(' ')[1];
   const nextPlayer = lastPlayer === 'w' ? 'b' : 'w';
   return nextPlayer;

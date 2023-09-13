@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Square from './Square';
 import Piece from './pieces//Piece';
 import Panel, { PanelProps } from './Panel';
@@ -10,16 +10,15 @@ import {
   coordinateType,
   pieceType,
   playerType,
-  validMovesBoardType
-} from '../types/Types';
+  validMovesBoardType,
+  fenComponents,
+  controlledSquares
+} from '@/types/Types';
 import {
-  findControlledSquares,
-  findValidMoves,
   handleFindValidMoves,
   isBlackPiece,
-  isEnemyPiece,
   isWhitePiece
-} from '../utils/validMoves';
+} from '@/utils/validMoves';
 import {
   componentsToFEN,
   getEnPassantTargetSquare,
@@ -27,9 +26,9 @@ import {
   getHalfMoveClock,
   newCastlingFENPostRookOrKingMove,
   nextPlayer,
-  parseFENString
-} from '../utils/fen';
+} from '@/utils/fen';
 import boardstyles from '@/styles/Board.module.css';
+import { Processor } from '@/utils/Processor';
 
 interface boardProps {
   FEN: string;
@@ -40,108 +39,55 @@ interface boardProps {
 const DEBUG = true;
 
 export default function Board(props: boardProps) {
-  // const [FEN, setFEN] = useState(props.FEN)
-  const FEN = props.FEN
+  const processor = Processor.Instance;
+  const FEN = props.FEN;
+  // FEN changes when opponent sends it through the websocket
+  // recompute values every time the FEN changes
+  processor.RELOAD();
 
-  let [position, onMove, castlingFEN, enPassantTargetSquare,
-    halfmoveClock, fullmoveNumber] = parseFENString(props.FEN);
 
+  const positionMap: boardType = processor.positionMap as boardType;
+  const fenComponents: fenComponents = processor.fenComponents;
+  const controlledSquares: controlledSquares =
+    processor.controlledSquares as controlledSquares;
+  const checkPosition: coordinateType = processor.kingCheckedPosition;
+
+  // game termination panel: stalemate & checkmate
+  const checkmateFlag: boolean = processor.checkmate;
+  const stalemateFlag: boolean = processor.stalemate;
+  let panelProps = {
+    checkmate: false,
+    stalemate: false
+  } as PanelProps;
+
+  if (checkmateFlag) {
+    panelProps = {
+      ...panelProps,
+      checkmate: true,
+      winningPlayer: fenComponents.onMove === "w" ? "b" : "w"
+    }
+  } else if (stalemateFlag) {
+    panelProps = {
+      ...panelProps,
+      stalemate: true
+    }
+  }
+
+  // STATES
   // Map containing valid moves
   // key is a string, the 'row,col' of the move
   // value is 'm' if its a move, or 'x' if its a capture
   const [validMoves, setValidMoves] = useState(new Map() as validMovesBoardType);
-  // selectedPiece is the position of the currently selected piece
+  // the selected piece is highlighted
   const [selectedPiece, setSelectedPiece] = useState(null as coordinateType);
-
-  const [checkPosition, setCheckPosition] = useState(null as coordinateType);
-
-  // NOTE: rook, knight, bishop does not consider a square with a friendly piece
-  // to be "controlled". is this a problem?
-  const [controlledSquares, setControlledSquares] = useState(new Map() as validMovesBoardType);
-
-  const [panelProps, setPanelProps] = useState({ checkmate: false } as PanelProps);
-
-  // states used for pawn promotion
+  // state to show promotion pieces
   const [showPromotion, setShowPromotion] = useState(false);
+  // promotion coordinates to identify WHERE to show promotable pieces
   const [promotionSquareCoord, setPromotionSquareCoord] = useState(null as coordinateType);
+  // STATES END
 
+  // JSX elements of the board
   const boardSquares = prepareBoard();
-
-  // Checking the king changes background
-  // if the king is in one of the controlled squares, then it is in check
-  useEffect(() => {
-    const whiteKingPos = findKingPosition('w');
-    const blackKingPos = findKingPosition('b');
-    if (onMove === 'b' && controlledSquares!.has(blackKingPos)) {
-      setCheckPosition(blackKingPos);
-      const checkmate = checkCheckmate();
-      setPanelProps({
-        checkmate: checkmate,
-        winningPlayer: 'w'
-      });
-    } else if (onMove === 'w' && controlledSquares!.has(whiteKingPos)) {
-      setCheckPosition(whiteKingPos);
-      const checkmate = checkCheckmate();
-      setPanelProps({
-        checkmate: checkmate,
-        winningPlayer: 'b'
-      });
-    } else {
-      setCheckPosition(null);
-    }
-  }, [controlledSquares]);
-
-  /** 
-   * @returns true if the position is checkmate
-   */
-  function checkCheckmate() {
-    // if the king has no legal moves and other friendly pieces also have no moves, then its checkmate
-    //
-    // if the king has legal moves, return false early
-    if (onMove === 'w') {
-      const whiteKingPos = findKingPosition('w');
-      const validKingMoves = findValidMoves('K', whiteKingPos, position, controlledSquares, FEN);
-      const trueValidKingMoves = simulateMove(validKingMoves, position, whiteKingPos);
-      if (trueValidKingMoves.size !== 0) {
-        return false;
-      } else {
-        // check all friendly pieces, if their true valid moves are also 0, then 
-        for (const [c, p] of position) {
-          if (isBlackPiece(p)) {
-            continue;
-          }
-          const validPieceMoves = findValidMoves(p, c, position, controlledSquares, FEN);
-          const trueValidMoves = simulateMove(validPieceMoves, position, c);
-          if (trueValidMoves.size !== 0) {
-            return false;
-          }
-        }
-        // there are no legal moves
-        return true;
-      }
-    } else {
-      const blackKingPos = findKingPosition('b')
-      const validKingMoves = findValidMoves('k', blackKingPos, position, controlledSquares, FEN);
-      const trueValidKingMoves = simulateMove(validKingMoves, position, blackKingPos);
-      if (trueValidKingMoves.size !== 0) {
-        return false;
-      } else {
-        // check all friendly pieces, if their true valid moves are also 0, then 
-        for (const [c, p] of position) {
-          if (isWhitePiece(p)) {
-            continue;
-          }
-          const validPieceMoves = findValidMoves(p, c, position, controlledSquares, FEN);
-          const trueValidMoves = simulateMove(validPieceMoves, position, c);
-          if (trueValidMoves.size !== 0) {
-            return false;
-          }
-        }
-        // there are no legal moves
-        return true;
-      }
-    }
-  }
 
   /**
    * given a perspective
@@ -174,16 +120,16 @@ export default function Board(props: boardProps) {
     for (let row = 7; row >= 0; row--) {
       let boardRow = [];
       for (let col = 7; col >= 0; col--) {
-        let currentPosition = `${row},${col}` as coordinateType;
-        let hasPiece = position.has(currentPosition);
-        let piece: any = hasPiece ? position.get(currentPosition) : "";
+        let currentSquare = `${row},${col}` as coordinateType;
+        let hasPiece = positionMap.has(currentSquare);
+        let piece: any = hasPiece ? positionMap.get(currentSquare) : "";
 
         let isValidMove = false;
         // player can only move their own piece
-        if (onMove === 'w') {
-          if (validMoves.has(currentPosition)) {
+        if (fenComponents.onMove === 'w') {
+          if (validMoves.has(currentSquare)) {
             for (let move of validMoveAbbrevs) {
-              if (validMoves.get(currentPosition) === move) {
+              if (validMoves.get(currentSquare) === move) {
                 isValidMove = true;
                 break;
               }
@@ -192,14 +138,14 @@ export default function Board(props: boardProps) {
         }
 
         const canCapture =
-          validMoves.has(currentPosition) &&
+          validMoves.has(currentSquare) &&
           (
-            validMoves.get(currentPosition) === 'x'
+            validMoves.get(currentSquare) === 'x'
             // castling shares the same visual graphic as a capture
-            || (validMoves.get(currentPosition) === 'K' && currentPosition === '0,7')
-            || (validMoves.get(currentPosition) === 'Q' && currentPosition === '0,0')
-            || (validMoves.get(currentPosition) === 'k' && currentPosition === '7,7')
-            || (validMoves.get(currentPosition) === 'q' && currentPosition === '7,0')
+            || (validMoves.get(currentSquare) === 'K' && currentSquare === '0,7')
+            || (validMoves.get(currentSquare) === 'Q' && currentSquare === '0,0')
+            || (validMoves.get(currentSquare) === 'k' && currentSquare === '7,7')
+            || (validMoves.get(currentSquare) === 'q' && currentSquare === '7,0')
           )
 
         let value = (row * 8) + col;
@@ -215,10 +161,9 @@ export default function Board(props: boardProps) {
             <Square
               key={value} value={value} row={row} col={col}
               isValidMove={isValidMove}
-              isSelected={selectedPiece === currentPosition}
+              isSelected={selectedPiece === currentSquare}
               canCapture={canCapture}
-              inCheck={checkPosition === currentPosition}
-              controlled={controlledSquares.has(currentPosition)}
+              inCheck={checkPosition === currentSquare}
             >
               {child}
             </Square>
@@ -244,11 +189,11 @@ export default function Board(props: boardProps) {
         let currentPosition: coordinateType = `${row},${col}` as coordinateType;
         // prepare arguments for renderSquare
         // check whether there is a piece in this position
-        const hasPiece = position.has(currentPosition);
-        const piece: any = hasPiece ? position.get(currentPosition) : "";
+        const hasPiece = positionMap.has(currentPosition);
+        const piece: any = hasPiece ? positionMap.get(currentPosition) : "";
 
         let isValidMove = false;
-        if (onMove === 'b') {
+        if (fenComponents.onMove === 'b') {
           // and whether this is a valid move (if a piece is clicked)
           if (validMoves.has(currentPosition)) {
             for (let move of validMoveAbbrevs) {
@@ -301,44 +246,10 @@ export default function Board(props: boardProps) {
     return boardSquares;
   }
 
-  function findKingPosition(player: playerType, passedBoardPosition?: boardType): coordinateType {
-    if (passedBoardPosition == null) {
-      if (player === 'w') {
-        for (let [coord, piece] of position) {
-          if (piece === 'K') {
-            return coord;
-          }
-        }
-      } else {
-        for (let [coord, piece] of position) {
-          if (piece === 'k') {
-            return coord;
-          }
-        }
-      }
-      return null;
-    } else {
-      if (player === 'w') {
-        for (let [coord, piece] of passedBoardPosition) {
-          if (piece === 'K') {
-            return coord;
-          }
-        }
-      } else {
-        for (let [coord, piece] of passedBoardPosition) {
-          if (piece === 'k') {
-            return coord;
-          }
-        }
-      }
-    }
-    return null;
-  }
-
   function castleKing(currentPosition: coordinateType): void {
     const castleDirection = validMoves.get(currentPosition);
 
-    const matches = /(?<white>K?Q?)(?<black>k?q?)/.exec(castlingFEN)!;
+    const matches = /(?<white>K?Q?)(?<black>k?q?)/.exec(fenComponents.castle!)!;
     let white = matches.groups!.white;
     let black = matches.groups!.black;
     let nextCastlingFEN =
@@ -350,12 +261,12 @@ export default function Board(props: boardProps) {
     }
 
     // increment the halfmove clock, not a capture or pawn advance
-    halfmoveClock++;
+    fenComponents.halfMoveClock!++;
 
     // move the king and rook
     // remove the king
-    position.delete(selectedPiece);
-    const nextPosition = new Map(position);
+    positionMap.delete(selectedPiece);
+    const nextPosition = new Map(positionMap);
     switch (castleDirection) {
       case 'K':
         nextPosition.delete('0,7'); // remove the rook
@@ -385,13 +296,13 @@ export default function Board(props: boardProps) {
       nextPlayer(FEN),
       nextCastlingFEN,
       '-', // no empassant target square after castling
-      halfmoveClock.toString(),
+      fenComponents.halfMoveClock!.toString(),
       getFullMoveNumber(FEN)
     );
     // set new FEN to update the board position
     props.sendMove(newFENString);
     clear();
-    setControlledSquares(getControlledSquares(nextPosition));
+    // setControlledSquares(processor.getControlledSquares(nextPosition));
   }
 
   function performMove(currentPosition: coordinateType) {
@@ -400,52 +311,37 @@ export default function Board(props: boardProps) {
       const matches = /(?<rank>[\d]),(?<file>[\d])/.exec(currentPosition!);
       let rank = parseInt(matches?.groups!.rank!);
       const file = parseInt(matches?.groups!.file!);
-      rank = onMove === 'w' ? rank - 1 : rank + 1;
-      position.delete(`${rank},${file}` as coordinateType);
+      rank = fenComponents.onMove === 'w' ? rank - 1 : rank + 1;
+      positionMap.delete(`${rank},${file}` as coordinateType);
     }
-    const movedPiece: pieceType = position.get(selectedPiece) as pieceType;
-    const nextCastlingFEN = newCastlingFENPostRookOrKingMove(castlingFEN, movedPiece, selectedPiece);
+    const movedPiece: pieceType = positionMap.get(selectedPiece) as pieceType;
+    const nextCastlingFEN = newCastlingFENPostRookOrKingMove(fenComponents.castle!, movedPiece, selectedPiece);
 
-    position.delete(selectedPiece);
     // move the piece
-    const nextPosition = new Map(position);
-    nextPosition.set(currentPosition, movedPiece);
+    positionMap.delete(selectedPiece);
+    positionMap.set(currentPosition, movedPiece);
 
     // get the enpassant target square
     const enpassantTargetSquare = getEnPassantTargetSquare(movedPiece, selectedPiece, currentPosition);
 
     // get the halfmove clock
     const isCapture: boolean = validMoves.get(currentPosition) === 'x';
-    halfmoveClock = getHalfMoveClock(halfmoveClock, movedPiece, isCapture);
+    fenComponents.halfMoveClock = getHalfMoveClock(fenComponents.halfMoveClock!, movedPiece, isCapture);
 
     clear();
-    setControlledSquares(getControlledSquares(nextPosition));
+    // setControlledSquares(processor.getControlledSquares(positionMap));
 
     // create the new FEN
     const newFENString = componentsToFEN(
-      nextPosition,
+      positionMap,
       nextPlayer(FEN),
       nextCastlingFEN,
       enpassantTargetSquare,
-      halfmoveClock.toString(),
+      fenComponents.halfMoveClock.toString(),
       getFullMoveNumber(FEN)
     );
     // set new FEN to update the board position
     props.sendMove(newFENString);
-  }
-
-  /**
-   * Returns a map of the controlled squares in the current position
-   */
-  function getControlledSquares(nextPosition: boardType) {
-    let controlledSquares = new Map() as validMovesBoardType;
-    for (let [coord, piece] of nextPosition) {
-      if (!isEnemyPiece(onMove, nextPosition, coord)) {
-        const mapToAdd = findControlledSquares(coord, piece, nextPosition);
-        controlledSquares = new Map([...controlledSquares, ...mapToAdd]);
-      }
-    }
-    return controlledSquares;
   }
 
   // clear valid moves and selected piece highlight
@@ -454,6 +350,15 @@ export default function Board(props: boardProps) {
     setValidMoves(new Map());
   }
 
+  /**
+   * User clicks on board. There are a few cases
+   * 1. Promotion move
+   * 2. Castling move
+   * 3. Clicking Valid Move moves piece to location
+   * 4. Clearing Valid Moves when same piece is clicked twice
+   * 5. Showing Valid Moves when valid piece is clicked
+   * 6. Resetting Valid Moves when empty square is clicked
+   */
   function handleClick(event: any) {
     let currentPosition = event.target.id;
     let source = event.target.offsetParent.className;
@@ -472,30 +377,41 @@ export default function Board(props: boardProps) {
       // remove the pawn and replace it with the piece
       let piece = undefined;
       if (/Queen/.test(event.target.alt)) {
-        piece = onMove === 'b' ? 'Q' : 'q';
+        piece = fenComponents.onMove === 'w' ? 'Q' : 'q';
       } else if (/Knight/.test(event.target.alt)) {
-        piece = onMove === 'b' ? 'N' : 'n';
+        piece = fenComponents.onMove === 'w' ? 'N' : 'n';
       } else if (/Rook/.test(event.target.alt)) {
-        piece = onMove === 'b' ? 'R' : 'r';
+        piece = fenComponents.onMove === 'w' ? 'R' : 'r';
       } else if (/Bishop/.test(event.target.alt)) {
-        piece = onMove === 'b' ? 'B' : 'b';
+        piece = fenComponents.onMove === 'w' ? 'B' : 'b';
       }
 
       if (piece !== undefined) {
-        const nextPosition = new Map(position);
-        nextPosition.delete(promotionSquareCoord);
+        const nextPosition = new Map(positionMap);
+        const toDelete = promotionSquareCoord!.split(',');
+
+        let pawnRank: number | string = parseInt(toDelete[0]);
+        if (fenComponents.onMove === 'w') {
+          pawnRank--;
+        } else {
+          pawnRank++;
+        }
+        pawnRank = pawnRank.toString();
+        toDelete[0] = pawnRank;
+        const pawnCoord = toDelete.join();
+        nextPosition.delete(pawnCoord as coordinateType);
+
         nextPosition.set(promotionSquareCoord, piece as pieceType);
         const nextFENString = componentsToFEN(
           nextPosition,
-          onMove,
-          castlingFEN,
+          nextPlayer(FEN),
+          fenComponents.castle!,
           '-',
-          halfmoveClock,
-          fullmoveNumber
+          fenComponents.halfMoveClock!,
+          fenComponents.fullMoveNumber!
         );
+        clear();
         setShowPromotion(false);
-        onMove = onMove === 'w' ? 'b' : 'w'; // HACK:
-        setControlledSquares(getControlledSquares(nextPosition));
         props.sendMove(nextFENString);
       }
     }
@@ -504,8 +420,8 @@ export default function Board(props: boardProps) {
       castleKing(currentPosition);
     }
     // if a valid Move is clicked, move the piece there
-    else if (validMoves.has(currentPosition) && props.perspective === onMove) {
-      const piece = position.get(selectedPiece);
+    else if (validMoves.has(currentPosition) && props.perspective === fenComponents.onMove) {
+      const piece = positionMap.get(selectedPiece);
       const rankMatcher = /(?<rank>[\d]),[\d]/.exec(currentPosition);
       const rank = rankMatcher!.groups!.rank;
       if (
@@ -515,6 +431,7 @@ export default function Board(props: boardProps) {
         // move is a pawn promotion
         setShowPromotion(true);
         setPromotionSquareCoord(currentPosition);
+        return;
       } else {
         setShowPromotion(false);
         setPromotionSquareCoord(null);
@@ -527,28 +444,28 @@ export default function Board(props: boardProps) {
     }
     // if a piece is clicked, show its valid moves
     // can only click on your own pieces
-    else if (position.has(currentPosition) &&
+    else if (positionMap.has(currentPosition) &&
       // its white's turn and a white piece is clicked OR
       // its black's turn and a black piece is clicked
       (
-        (onMove === 'w' && isWhitePiece(position.get(currentPosition)))
-        || (onMove === 'b' && isBlackPiece(position.get(currentPosition)))
+        (fenComponents.onMove === 'w' && isWhitePiece(positionMap.get(currentPosition)))
+        || (fenComponents.onMove === 'b' && isBlackPiece(positionMap.get(currentPosition)))
       ) &&
-      (props.perspective === onMove)
+      (props.perspective === fenComponents.onMove)
     ) {
-      let nextValidMoves = handleFindValidMoves(
+      let naiveValidMoves = handleFindValidMoves(
         event.target,
         currentPosition,
-        position,
-        controlledSquares,
+        positionMap,
+        fenComponents.onMove === 'w' ? controlledSquares.black : controlledSquares.white,
         FEN,
         checkPosition
       );
       // for each valid move
       // simulate this move to check if it is truly vaild
-      const trueValidMoves = simulateMove(nextValidMoves, position, currentPosition);
+      const validMoves = processor.simulateMove(naiveValidMoves, currentPosition);
 
-      setValidMoves(trueValidMoves);
+      setValidMoves(validMoves);
       // change background color to indicate piece is selected
       setSelectedPiece(currentPosition)
     }
@@ -558,55 +475,15 @@ export default function Board(props: boardProps) {
     }
   }
 
-  // For each valid move found, simulate this move, and check all enenmy 
-  function simulateMove(
-    validMoves: validMovesBoardType,
-    position: boardType,
-    pieceCoord: coordinateType
-  ) {
-    const trueValidMoves = new Map();
-
-    validMoves.forEach((value, coord) => {
-      const simulatedPosition = new Map([...position]); // clone position
-      const movedPiece = simulatedPosition.get(pieceCoord);
-      simulatedPosition.delete(pieceCoord);
-      simulatedPosition.set(coord, movedPiece!);
-      // check all enemy moves
-      // if any are a capture of the king, then this move is not valid
-      for (let [c, p] of simulatedPosition) {
-        // skip our own pieces
-        if (onMove === 'w') {
-          if (!/[a-z]/.test(p)) {
-            continue;
-          }
-        } else if (onMove === 'b') {
-          if (!/[A-Z]/.test(p)) {
-            continue;
-          }
-        }
-        // the simulated controlled for this enemy piece
-        const simulatedEnemyControlledSquares = findControlledSquares(c, p, simulatedPosition);
-        // if the king can be captured, this is not a valid move
-        const simulatedKingPos = findKingPosition(onMove, simulatedPosition);
-
-        if (simulatedEnemyControlledSquares.has(simulatedKingPos)) {
-          // this position is illegal
-          return;
-        }
-      }
-      trueValidMoves.set(coord, value);
-    })
-    return trueValidMoves;
-  }
-
   return (
     <div>
-      {DEBUG && <p>{FEN}</p>}
+      {DEBUG && <h1>{processor.fen}</h1>}
       <div
         onClick={handleClick}
+        className={boardstyles['promotion-parent']}
       >
         {showPromotion && <Promotion
-          player='w'
+          player={fenComponents.onMove as playerType}
           promotionSquareCoord={promotionSquareCoord}
         />}
       </div>
@@ -619,6 +496,7 @@ export default function Board(props: boardProps) {
         <Panel
           checkmate={panelProps.checkmate}
           winningPlayer={panelProps.winningPlayer}
+          stalemate={panelProps.stalemate}
         />
       </div>
     </div>

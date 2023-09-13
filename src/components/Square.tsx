@@ -1,6 +1,6 @@
 'use client'
 
-import React, { ReactElement, ReactNode } from 'react';
+import React, { ReactElement } from 'react';
 import squarestyles from '@/styles/Board.module.css';
 
 interface SquareProps {
