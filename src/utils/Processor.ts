@@ -45,6 +45,7 @@ export class Processor {
     // const TESTbug = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1';
     // const TESTpromotion = '1k6/1q3P2/8/8/8/8/8/2K5 w - - 0 1';
     // const TESTblackPromotion = '1k6/1q3P2/8/8/8/8/5p2/2K5 w - - 0 1';
+    // const TESTcastling = 'r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1';
     return this._instance || (this._instance = new this(startingFEN));
   }
   public get fen() { return this._fen; }

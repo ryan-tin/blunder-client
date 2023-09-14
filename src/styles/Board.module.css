@@ -77,3 +77,11 @@
 .transparent {
   background-color: rgb(92, 122, 105, 0);
 }
+
+.last-move-from {
+  background-color: rgb(199, 214, 160);
+}
+
+.last-move-to {
+  background-color: rgb(153, 176, 126);
+}

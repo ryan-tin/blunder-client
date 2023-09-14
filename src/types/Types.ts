@@ -41,3 +41,8 @@ export interface controlledSquares {
   white: validMovesBoardType,
   black: validMovesBoardType
 }
+
+export interface lastMove {
+  from: coordinateType,
+  to: coordinateType
+}

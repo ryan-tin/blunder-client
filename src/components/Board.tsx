@@ -12,7 +12,8 @@ import {
   playerType,
   validMovesBoardType,
   fenComponents,
-  controlledSquares
+  controlledSquares,
+  lastMove
 } from '@/types/Types';
 import {
   handleFindValidMoves,
@@ -30,11 +31,13 @@ import {
 import boardstyles from '@/styles/Board.module.css';
 import squarestyles from '@/styles/Board.module.css';
 import { Processor } from '@/utils/Processor';
+import { getCoordFromCoordType } from '@/utils/regex';
 
 interface boardProps {
   FEN: string;
   perspective: playerType;
   sendMove: Function;
+  lastMove: lastMove;
 }
 
 const DEBUG = false;
@@ -42,6 +45,7 @@ const DEBUG = false;
 export default function Board(props: boardProps) {
   const processor = Processor.Instance;
   const FEN = props.FEN;
+  const lastMove = props.lastMove;
   // FEN changes when opponent sends it through the websocket
   // recompute values every time the FEN changes
   processor.RELOAD();
@@ -172,6 +176,7 @@ export default function Board(props: boardProps) {
               isSelected={selectedPiece === currentSquare}
               canCapture={canCapture}
               inCheck={checkPosition === currentSquare}
+              lastMove={lastMove}
             >
               {child}
             </Square>
@@ -242,6 +247,7 @@ export default function Board(props: boardProps) {
               isSelected={selectedPiece === currentPosition}
               canCapture={canCapture}
               inCheck={checkPosition === currentPosition}
+              lastMove={lastMove}
             >
               {child}
             </Square>
@@ -278,26 +284,31 @@ export default function Board(props: boardProps) {
     // remove the king
     positionMap.delete(selectedPiece);
     const nextPosition = new Map(positionMap);
+    let lastMove = {from: selectedPiece, to: null} as lastMove;
     switch (castleDirection) {
       case 'K':
         nextPosition.delete('0,7'); // remove the rook
         nextPosition.set('0,6', 'K');
         nextPosition.set('0,5', 'R');
+        lastMove.to = '0,7';
         break;
       case 'Q':
         nextPosition.delete('0,0'); // remove the rook
         nextPosition.set('0,2', 'K');
         nextPosition.set('0,3', 'R');
+        lastMove.to = '0,0';
         break;
       case 'k':
         nextPosition.delete('7,7'); // remove the rook
         nextPosition.set('7,6', 'k');
         nextPosition.set('7,5', 'r');
+        lastMove.to = '7,7';
         break;
       case 'q':
         nextPosition.delete('7,0'); // remove the rook
         nextPosition.set('7,2', 'k');
         nextPosition.set('7,3', 'r');
+        lastMove.to = '7,0';
         break;
     }
 
@@ -311,9 +322,8 @@ export default function Board(props: boardProps) {
       getFullMoveNumber(FEN)
     );
     // set new FEN to update the board position
-    props.sendMove(newFENString);
+    props.sendMove(newFENString, lastMove);
     clear();
-    // setControlledSquares(processor.getControlledSquares(nextPosition));
   }
 
   function performMove(currentPosition: coordinateType) {
@@ -332,6 +342,8 @@ export default function Board(props: boardProps) {
     positionMap.delete(selectedPiece);
     positionMap.set(currentPosition, movedPiece);
 
+    const lastMove = {from: selectedPiece, to: currentPosition};
+
     // get the enpassant target square
     const enpassantTargetSquare = getEnPassantTargetSquare(movedPiece, selectedPiece, currentPosition);
 
@@ -340,7 +352,6 @@ export default function Board(props: boardProps) {
     fenComponents.halfMoveClock = getHalfMoveClock(fenComponents.halfMoveClock!, movedPiece, isCapture);
 
     clear();
-    // setControlledSquares(processor.getControlledSquares(positionMap));
 
     // create the new FEN
     const newFENString = componentsToFEN(
@@ -352,7 +363,7 @@ export default function Board(props: boardProps) {
       getFullMoveNumber(FEN)
     );
     // set new FEN to update the board position
-    props.sendMove(newFENString);
+    props.sendMove(newFENString, lastMove);
   }
 
   // clear valid moves and selected piece highlight
@@ -372,7 +383,7 @@ export default function Board(props: boardProps) {
    */
   function handleClick(event: any) {
     let currentPosition = event.target.id;
-    let source = event.target.offsetParent.className;
+    let isSelectPromotionPiece = event.target.offsetParent.className.includes('promotion');
 
     const castlingMoves = ['K', 'Q', 'k', 'q'];
     let castle = false;
@@ -384,7 +395,7 @@ export default function Board(props: boardProps) {
     }
 
     // promotion move
-    if (source.includes('promotion')) {
+    if (isSelectPromotionPiece) {
       // remove the pawn and replace it with the piece
       let piece = undefined;
       if (/Queen/.test(event.target.alt)) {
@@ -423,7 +434,14 @@ export default function Board(props: boardProps) {
         );
         clear();
         setShowPromotion(false);
-        props.sendMove(nextFENString);
+        let lastMove: lastMove = {from: null, to: promotionSquareCoord};
+        let temp = getCoordFromCoordType(promotionSquareCoord);
+        if (fenComponents.onMove === 'w') {
+          lastMove.from = `${(parseInt(temp.rank) - 1).toString()},${temp.file}` as coordinateType;
+        } else {
+          lastMove.from = `${(parseInt(temp.rank) + 1).toString()},${temp.file}` as coordinateType;
+        }
+        props.sendMove(nextFENString, lastMove);
       }
     }
     // valid castling move is clicked
@@ -520,24 +538,37 @@ export default function Board(props: boardProps) {
    * triggers when a piece is dropped
    */
   function handleDrop(event: any) {
-    // need the coordinates of square the piece is dropped
-    let currentPosition = hoverOverCoord.current as unknown as coordinateType;
-    if (validMoves.has(currentPosition) && props.perspective === fenComponents.onMove) {
+    const castlingMoves = ['K', 'Q', 'k', 'q'];
+    let castle = false;
+    for (let move of castlingMoves) {
+      if (validMoves.get(hoverOverCoord.current) === move) {
+        castle = true;
+        break;
+      }
+    }
+
+    // castling
+    if (castle) {
+      castleKing(hoverOverCoord.current);
+    }
+    // selecting promotion piece does not need to be handled
+    // normal move (incl. drag pawn to promotion rank)
+    else if (validMoves.has(hoverOverCoord.current) && props.perspective === fenComponents.onMove) {
       const piece = positionMap.get(selectedPiece);
-      const rank = event.target.dataset.row
+      const dropRank = getCoordFromCoordType(hoverOverCoord.current).rank;
       if (
-        (piece === 'p' && rank === '0')
-        || (piece === 'P' && rank === '7')
+        (piece === 'p' && dropRank == '0')
+        || (piece === 'P' && dropRank == '7')
       ) {
         // move is a pawn promotion
         setShowPromotion(true);
-        setPromotionSquareCoord(currentPosition);
+        setPromotionSquareCoord(hoverOverCoord.current);
         return;
       } else {
         setShowPromotion(false);
         setPromotionSquareCoord(null);
       }
-      performMove(currentPosition);
+      performMove(hoverOverCoord.current);
     }
   }
 

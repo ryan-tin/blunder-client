@@ -2,6 +2,7 @@
 
 import React, { ReactElement } from 'react';
 import squarestyles from '@/styles/Board.module.css';
+import { lastMove } from '@/types/Types';
 
 interface SquareProps {
   key: number;
@@ -14,6 +15,7 @@ interface SquareProps {
   inCheck: boolean;
   controlled?: boolean; // whether this suqare is being attacked by a piece
   children: ReactElement;
+  lastMove: lastMove;
 }
 
 export default function Square(props: SquareProps) {
@@ -38,12 +40,17 @@ export default function Square(props: SquareProps) {
 
   const id = `${props.row},${props.col}`;
 
+  className = props.lastMove.from === id ?
+    className += " " + squarestyles['last-move-from'] : className;
+
+  className = props.lastMove.to === id ?
+    className += " " + squarestyles['last-move-to'] : className;
+
   /**
    * reset background color of square to show piece leaving square
    */
   function handleDragLeave(event: any) {
     event.target.classList.remove(squarestyles['drag-over']);
-    // console.log(row, col);
     resetBackground(event)
     event.stopPropagation();
   }
@@ -79,7 +86,7 @@ export default function Square(props: SquareProps) {
     } else {
       event.target.classList.add(squarestyles['light-square']);
     }
-  } 
+  }
 
   return (
     <span

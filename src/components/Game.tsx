@@ -1,6 +1,6 @@
 'use client'
 
-import { playerType } from "@/types/Types";
+import { playerType, lastMove } from "@/types/Types";
 import Board from "@/components/Board";
 import { io } from "socket.io-client";
 import { useEffect, useState } from "react";
@@ -15,6 +15,7 @@ export default function Game({ perspective, roomId }: GameProps) {
   const startingFEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
   const [FEN, setFEN] = useState(startingFEN);
   const [socket, setSocket] = useState(io(`http://localhost:60001/game`));
+  const [lastMove, setLastMove] = useState({ from: null, to: null } as lastMove)
   const processor = Processor.Instance;
 
   useEffect(() => {
@@ -25,10 +26,11 @@ export default function Game({ perspective, roomId }: GameProps) {
     socket.emit('join room', roomId);
 
     // listen for opponent moves
-    socket.on('send move', (newFEN: string) => {
+    socket.on('send move', (message: any) => {
       // opponent sent FEN, update board
-      setFEN(newFEN);
-      processor.FEN = newFEN;
+      setFEN(message.FEN);
+      setLastMove(message.lastMove);
+      processor.FEN = message.FEN;
     })
 
     socket.on('disconnect', (reason) => {
@@ -43,11 +45,17 @@ export default function Game({ perspective, roomId }: GameProps) {
   }, []);
 
   // send move to opponent
-  function handleSendNextMove(newFEN: string) {
+  function handleSendNextMove(newFEN: string, lastMove: lastMove) {
+    let message = {
+      roomId: roomId,
+      FEN: newFEN,
+      lastMove: lastMove
+    }
     // send FEN to opponent
-    socket.emit('send move', { roomId: roomId, FEN: newFEN });
+    socket.emit('send move', message);
     // update own board
     setFEN(newFEN);
+    setLastMove(lastMove);
     processor.FEN = newFEN;
   }
 
@@ -55,6 +63,7 @@ export default function Game({ perspective, roomId }: GameProps) {
     <div>
       <Board
         FEN={FEN}
+        lastMove={lastMove}
         perspective={perspective}
         sendMove={handleSendNextMove}
       />
