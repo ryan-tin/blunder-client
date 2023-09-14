@@ -17,48 +17,80 @@ interface SquareProps {
 }
 
 export default function Square(props: SquareProps) {
-  const darkSquare: React.CSSProperties = {
-    backgroundColor: 'rgb(144, 161, 172)' // nordic blue
+  let className = `${squarestyles.square}`;
+
+  // UGLY
+  className = (props.row + props.col) % 2 === 0 ?
+    className += " " + squarestyles['dark-square'] :
+    className += " " + squarestyles['light-square'];
+
+  className = props.isValidMove ?
+    className += " " + squarestyles['move-dest'] : className;
+
+  className = props.canCapture ?
+    className += " " + squarestyles['capture'] : className;
+
+  className = props.inCheck ?
+    className += " " + squarestyles['check'] : className;
+
+  className = props.isSelected ?
+    className += " " + squarestyles['selected-square'] : className;
+
+  const id = `${props.row},${props.col}`;
+
+  /**
+   * reset background color of square to show piece leaving square
+   */
+  function handleDragLeave(event: any) {
+    event.target.classList.remove(squarestyles['drag-over']);
+    // console.log(row, col);
+    resetBackground(event)
+    event.stopPropagation();
   }
-  const lightSquare: React.CSSProperties = {
-    backgroundColor: 'rgb(223, 227, 230)' // icy white
+
+  /**
+   * necessary to guarantee no default drop behavior
+   * https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/drop_event
+   */
+  function handleDragOver(event: any) {
+    event.preventDefault();
+    event.stopPropagation();
   }
-  const selectedSquare: React.CSSProperties = {
-    // backgroundColor: 'rgb(92,122,105)' // lichess green
-    backgroundColor: 'rgb(207, 139, 94)' // kanagawa orange
+
+  /**
+   * drop piece at location if it can go there
+   */
+  function handleDrop(event: any) {
+    resetBackground(event);
   }
-  // const checkedKing: React.CSSProperties = {
-  //   // backgroundColor: 'rgb(92,122,105)' // lichess green
-  //   backgroundColor: "red"
-  // }
-  const controlledStyle: React.CSSProperties = {
-    backgroundColor: "firebrick"
-  }
-  
 
-  // determine whether square is a light or dark square
-  let styles = (props.row + props.col) % 2 === 0 ? darkSquare : lightSquare;
-
-  // styles = props.controlled ? controlledStyle : styles;
-  // styles = props.inCheck ? checkedKing : styles;
-
-  let className = `${squarestyles.square}`; 
-  className = props.isValidMove ? className += " " + squarestyles['move-dest'] : className;
-  className = props.canCapture ? className += " " + squarestyles['capture'] : className;
-  className = props.inCheck ? className += " " + squarestyles['check'] : className;
-
-  // do not remove, empty on purpose
-  // propagates up to Board
-  function handleClick(event: any) {}
-
-  const id=`${props.row},${props.col}`;
+  /**
+   * reset background
+   */
+  function resetBackground(event: any): void {
+    const row = parseInt(event.target.dataset['row'])
+    const col = parseInt(event.target.dataset['col'])
+    // HACK: the following condition is true when there is a piece in a square
+    if (props.children.props.pieceType !== "") {
+      // square with a piece in it has a transparent background
+      event.target.classList.add(squarestyles['transparent']);
+    } else if ((row + col) % 2 === 0) {
+      event.target.classList.add(squarestyles['dark-square']);
+    } else {
+      event.target.classList.add(squarestyles['light-square']);
+    }
+  } 
 
   return (
     <span
       className={className}
       id={id}
-      style={props.isSelected ? selectedSquare : styles}
-      onClick={handleClick}
+      // define custom attributes by prefacing it with 'data-'
+      data-row={props.row}
+      data-col={props.col}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
     >
       {/* `${props.value}, ` */}
       {/* `${props.row},${props.col}` */}

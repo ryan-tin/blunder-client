@@ -12,6 +12,9 @@ export interface pieceProps {
   pieceType: pieceType;
   isPinned?: boolean;
   coordinates: coordinateType;
+  "data-row"?: number;
+  "data-col"?: number;
+  draggable: boolean;
 };
 
 export default function Piece(props: pieceProps) {
@@ -37,16 +40,16 @@ export default function Piece(props: pieceProps) {
       piece = <Rook {...props} player='b' />
       break;
     case 'P':
-      piece = <Pawn {...props} player='w'/>;
+      piece = <Pawn {...props} player='w' />;
       break;
     case 'K':
-      piece = <King {...props} player='w'/>
+      piece = <King {...props} player='w' />
       break;
     case 'Q':
-      piece = <Queen {...props} player='w'/>
+      piece = <Queen {...props} player='w' />
       break;
     case 'B':
-      piece = <Bishop {...props} player='w'/>
+      piece = <Bishop {...props} player='w' />
       break;
     case 'N':
       piece = <Knight {...props} player='w' />

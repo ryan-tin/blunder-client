@@ -19,19 +19,16 @@ export default function King(props: pieceProps) {
     };
   }
 
-  function handleClick(e: any) {
-    // do nothing
-    // rely on event popagation
-  }
-
   return <Image
+    draggable={props.draggable}
     src={kingAttributes.src}
     alt={kingAttributes.alt}
     height={100}
     width={100}
     className={styles.Piece}
     id={props.coordinates as string}
-    onClick={handleClick}
+    data-row={props["data-row"]}
+    data-col={props["data-col"]}
     priority={true}
   />;
 }

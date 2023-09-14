@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Square from './Square';
 import Piece from './pieces//Piece';
 import Panel, { PanelProps } from './Panel';
@@ -28,6 +28,7 @@ import {
   nextPlayer,
 } from '@/utils/fen';
 import boardstyles from '@/styles/Board.module.css';
+import squarestyles from '@/styles/Board.module.css';
 import { Processor } from '@/utils/Processor';
 
 interface boardProps {
@@ -36,7 +37,7 @@ interface boardProps {
   sendMove: Function;
 }
 
-const DEBUG = true;
+const DEBUG = false;
 
 export default function Board(props: boardProps) {
   const processor = Processor.Instance;
@@ -86,6 +87,10 @@ export default function Board(props: boardProps) {
   const [promotionSquareCoord, setPromotionSquareCoord] = useState(null as coordinateType);
   // STATES END
 
+  // REF does not trigger re-render
+  const hoverOverCoord = useRef(null); // coordinate
+  // REF END
+
   // JSX elements of the board
   const boardSquares = prepareBoard();
 
@@ -122,7 +127,7 @@ export default function Board(props: boardProps) {
       for (let col = 7; col >= 0; col--) {
         let currentSquare = `${row},${col}` as coordinateType;
         let hasPiece = positionMap.has(currentSquare);
-        let piece: any = hasPiece ? positionMap.get(currentSquare) : "";
+        const piece: any = hasPiece ? positionMap.get(currentSquare) : "";
 
         let isValidMove = false;
         // player can only move their own piece
@@ -153,6 +158,9 @@ export default function Board(props: boardProps) {
           <Piece
             pieceType={piece}
             coordinates={`${row},${col}` as coordinateType}
+            draggable={isWhitePiece(piece) ? true : false}
+            data-row={row}
+            data-col={col}
           />
         )
 
@@ -220,7 +228,10 @@ export default function Board(props: boardProps) {
         let child =
           <Piece
             pieceType={piece}
+            draggable={isBlackPiece(piece) ? true : false}
             coordinates={`${row},${col}` as coordinateType}
+            data-row={row}
+            data-col={col}
           />;
 
         boardRow.unshift(
@@ -422,8 +433,7 @@ export default function Board(props: boardProps) {
     // if a valid Move is clicked, move the piece there
     else if (validMoves.has(currentPosition) && props.perspective === fenComponents.onMove) {
       const piece = positionMap.get(selectedPiece);
-      const rankMatcher = /(?<rank>[\d]),[\d]/.exec(currentPosition);
-      const rank = rankMatcher!.groups!.rank;
+      const rank = event.target.dataset.row
       if (
         (piece === 'p' && rank === '0')
         || (piece === 'P' && rank === '7')
@@ -475,6 +485,77 @@ export default function Board(props: boardProps) {
     }
   }
 
+  /**
+   * triggers when a piece is picked up
+   */
+  function handleDragStart(event: any) {
+    event.dataTransfer.effectAllowed = "move";
+    let currentPosition = event.target.id;
+    if (positionMap.has(currentPosition) &&
+      // its white's turn and a white piece is clicked OR
+      // its black's turn and a black piece is clicked
+      (
+        (fenComponents.onMove === 'w' && isWhitePiece(positionMap.get(currentPosition)))
+        || (fenComponents.onMove === 'b' && isBlackPiece(positionMap.get(currentPosition)))
+      ) &&
+      (props.perspective === fenComponents.onMove)
+    ) {
+      // compute & show valid moves
+      const currentPosition = event.target.id
+      let naiveValidMoves = handleFindValidMoves(
+        event.target,
+        currentPosition,
+        positionMap,
+        fenComponents.onMove === 'w' ? controlledSquares.black : controlledSquares.white,
+        FEN,
+        checkPosition
+      );
+      const validMoves = processor.simulateMove(naiveValidMoves, currentPosition);
+      setValidMoves(validMoves);
+      setSelectedPiece(event.target.id);
+    }
+  }
+
+  /**
+   * triggers when a piece is dropped
+   */
+  function handleDrop(event: any) {
+    // need the coordinates of square the piece is dropped
+    let currentPosition = hoverOverCoord.current as unknown as coordinateType;
+    if (validMoves.has(currentPosition) && props.perspective === fenComponents.onMove) {
+      const piece = positionMap.get(selectedPiece);
+      const rank = event.target.dataset.row
+      if (
+        (piece === 'p' && rank === '0')
+        || (piece === 'P' && rank === '7')
+      ) {
+        // move is a pawn promotion
+        setShowPromotion(true);
+        setPromotionSquareCoord(currentPosition);
+        return;
+      } else {
+        setShowPromotion(false);
+        setPromotionSquareCoord(null);
+      }
+      performMove(currentPosition);
+    }
+  }
+
+  /**
+   * triggers when piece is dragged over
+   * change the background of a square if it is a valid move
+   */
+  function handleDragEnter(event: any) {
+    hoverOverCoord.current = event.target.id
+    if (validMoves.has(hoverOverCoord.current)) {
+      event.target.classList.remove(squarestyles['light-square']);
+      event.target.classList.remove(squarestyles['dark-square']);
+      event.target.classList.remove(squarestyles['transparent']);
+      event.target.classList.add(squarestyles['drag-over']);
+      event.stopPropagation();
+    }
+  }
+
   return (
     <div>
       {DEBUG && <h1>{processor.fen}</h1>}
@@ -489,6 +570,9 @@ export default function Board(props: boardProps) {
       </div>
       <div className={boardstyles['Board-container']}
         onClick={handleClick}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDrop}
+        onDragEnter={handleDragEnter}
       >
         {boardSquares}
       </div>

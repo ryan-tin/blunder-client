@@ -10,17 +10,19 @@
 }
 
 .move-dest {
-  /* background: radial-gradient(rgba(20, 85, 30, 0.5) 19%, rgba(0, 0, 0, 0) 20%); */
+  /* lichess green */
+  background: radial-gradient(rgba(20, 85, 30, 0.5) 19%, rgba(0, 0, 0, 0) 20%);
   /* kanagawa orange */
-  background: radial-gradient(rgba(207, 139, 94, 0.6) 19%, rgba(0, 0, 0, 0) 20%);
+  /* background: radial-gradient(rgba(207, 139, 94, 0.6) 19%, rgba(0, 0, 0, 0) 20%); */
   pointer-events: auto;
   border: 2px solid red;
 }
 
 .capture {
-  /* background: radial-gradient(transparent 0%, transparent 79%, rgba(20, 85, 0, 0.3) 80%); */
+  /* lichess green */
+  background: radial-gradient(transparent 0%, transparent 79%, rgba(20, 85, 0, 0.3) 80%);
   /* kanagawa orange */
-  background: radial-gradient(transparent 0%, transparent 79%, rgba(207, 139, 94, 0.6) 80%);
+  /* background: radial-gradient(transparent 0%, transparent 79%, rgba(207, 139, 94, 0.6) 80%); */
 }
 
 .check {
@@ -53,4 +55,25 @@
   left: 50%;
   transform: translate(-50%); /* shift left */
   background: rgba(0, 0, 0, 0.5); /* transparent grey background */
+}
+
+.drag-over {
+  background-color: rgb(92,122,105);
+}
+
+.light-square {
+  background-color: rgb(223, 227, 230); /* icy white */
+}
+
+.dark-square {
+  background-color: rgb(144, 161, 172); /* nordic blue */
+}
+
+.selected-square {
+  background-color: rgb(207, 139, 94); /* kanagawa orange */
+  background-color: rgb(92, 122, 105); /* lichess green */
+}
+
+.transparent {
+  background-color: rgb(92, 122, 105, 0);
 }

@@ -1,6 +1,8 @@
 import Game from "@/components/Game";
 import { playerType } from "@/types/Types";
 
+const DEBUG = false;
+
 export default function GameRoom({ params }: {
   params: {
     id: string,
@@ -11,7 +13,7 @@ export default function GameRoom({ params }: {
   return (
     <main>
       <h1>
-        {`welcome to game room: ${params.id}`}
+        {DEBUG && `welcome to game room: ${params.id}`}
       </h1>
       <Game
         perspective={params.perspective as playerType}

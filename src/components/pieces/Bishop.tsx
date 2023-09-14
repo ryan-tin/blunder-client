@@ -19,18 +19,16 @@ export default function Bishop(props: pieceProps) {
     };
   }
 
-  function handleClick() {
-    // rely on event propagation
-  }
-
   return <Image
+    draggable={props.draggable}
     src={bishopAttributes.src}
     alt={bishopAttributes.alt}
     height={100}
     width={100}
     className={styles.Piece}
     id={props.coordinates as string}
-    onClick={handleClick}
+    data-row={props["data-row"]}
+    data-col={props["data-col"]}
     priority={true}
   />;
 }
