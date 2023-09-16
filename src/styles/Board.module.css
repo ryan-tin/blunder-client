@@ -78,10 +78,10 @@
   background-color: rgb(92, 122, 105, 0);
 }
 
-.last-move-from {
+.last-move-light {
   background-color: rgb(199, 214, 160);
 }
 
-.last-move-to {
+.last-move-dark {
   background-color: rgb(153, 176, 126);
 }

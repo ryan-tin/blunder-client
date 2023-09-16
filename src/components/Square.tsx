@@ -40,11 +40,11 @@ export default function Square(props: SquareProps) {
 
   const id = `${props.row},${props.col}`;
 
-  className = props.lastMove.from === id ?
-    className += " " + squarestyles['last-move-from'] : className;
+  className = (props.lastMove.from === id || props.lastMove.to === id) && (props.row + props.col) % 2 === 0 ?
+    className += " " + squarestyles['last-move-dark'] : className;
 
-  className = props.lastMove.to === id ?
-    className += " " + squarestyles['last-move-to'] : className;
+  className = (props.lastMove.to === id || props.lastMove.from === id) && (props.row + props.col) % 2 !== 0 ?
+    className += " " + squarestyles['last-move-light'] : className;
 
   /**
    * reset background color of square to show piece leaving square
