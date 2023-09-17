@@ -40,7 +40,7 @@ interface boardProps {
   lastMove: lastMove;
 }
 
-const DEBUG = false;
+const DEBUG = true;
 
 export default function Board(props: boardProps) {
   const processor = Processor.Instance;

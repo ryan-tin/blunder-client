@@ -13,11 +13,15 @@ export default function LobbyGames({ session, gameRows }:
   const supabase = createClientComponentClient();
   const [rows, setRows] = useState(gameRows);
   // socket for the homepage, used to monitor when opponents join games
-  const lobbySocket = io('http://localhost:60001/lobby');
+  const lobbySocket = io('http://localhost:60001/lobby', {
+    autoConnect: false
+  });
 
   useEffect(() => {
+    // no op if socket is already connected
+    lobbySocket.connect();
     lobbySocket.on('connect', () => {
-      // console.log('connected to socket', lobbySocket.id)
+      console.log('connected to socket', lobbySocket.id)
     })
 
     lobbySocket.on('join game', (port_num) => {
@@ -25,7 +29,7 @@ export default function LobbyGames({ session, gameRows }:
         // if an opponent joins your game, automatically join the same room
         if (parseInt(port_num) === row.port_num && row.user_id === session?.user.id) {
           const side = row.side === 'white' ? 'w' : 'b';
-          window.location.assign(`${window.location.href}game/${row.port_num}/${side}`)
+          window.location.assign(`${window.location.href}game/${row.port_num}/${side}/${row.time}/${row.increment}`)
           // TODO: uncomment line below
           // deleteGame(row);
         }
@@ -103,7 +107,7 @@ export default function LobbyGames({ session, gameRows }:
     } else {
       // join a game that someone else created
       const side = row.side === 'white' ? 'b' : 'w'
-      window.location.assign(`${window.location.href}game/${row.port_num}/${side}`)
+      window.location.assign(`${window.location.href}game/${row.port_num}/${side}/${row.time}/${row.increment}`)
       lobbySocket.emit('join game', `${row.port_num}`)
     }
     e.stopPropagation();

@@ -7,6 +7,8 @@ export default function GameRoom({ params }: {
   params: {
     id: string,
     perspective: string
+    time: number
+    increment: number
   }
 }) {
 
@@ -18,6 +20,10 @@ export default function GameRoom({ params }: {
       <Game
         perspective={params.perspective as playerType}
         roomId={params.id}
+        timeControl={{
+          totalTime: params.time,
+          increment: params.increment
+        }}
       />
     </main>
   );

@@ -46,3 +46,8 @@ export interface lastMove {
   from: coordinateType,
   to: coordinateType
 }
+
+export interface timeControl {
+  totalTime: number,
+  increment: number
+}
