@@ -387,6 +387,10 @@ export default function Board(props: boardProps) {
    * 6. Resetting Valid Moves when empty square is clicked
    */
   function handleClick(event: any) {
+    // no moves can be made if a player has run out of time
+    if (props.timeOverFlag.isTimeOver) {
+      return;
+    }
     let currentPosition = event.target.id;
     let isSelectPromotionPiece = event.target.offsetParent.className.includes('promotion');
 
@@ -513,6 +517,10 @@ export default function Board(props: boardProps) {
    */
   function handleDragStart(event: any) {
     event.dataTransfer.effectAllowed = "move";
+    // no moves can be made if a player has run out of time
+    if (props.timeOverFlag.isTimeOver) {
+      return;
+    }
     let currentPosition = event.target.id;
     if (positionMap.has(currentPosition) &&
       // its white's turn and a white piece is clicked OR
