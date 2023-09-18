@@ -3,7 +3,6 @@
 import { useRef, useState } from 'react';
 import Square from './Square';
 import Piece from './pieces//Piece';
-import Panel, { PanelProps } from './Panel';
 import Promotion from './Promotion';
 import {
   boardType,
@@ -38,10 +37,8 @@ interface boardProps {
   perspective: playerType;
   sendMove: Function;
   lastMove: lastMove;
-  timeOverFlag: {
-    isTimeOver: boolean;
-    winner: playerType
-  }
+  gameOverFlag: boolean;
+  gameEnd: Function;
 }
 
 const DEBUG = false;
@@ -64,24 +61,8 @@ export default function Board(props: boardProps) {
   // game termination panel: stalemate & checkmate
   const checkmateFlag: boolean = processor.checkmate;
   const stalemateFlag: boolean = processor.stalemate;
-  let panelProps = {
-    checkmate: false,
-    stalemate: false,
-    timeOut: props.timeOverFlag
-  } as PanelProps;
 
-  if (checkmateFlag) {
-    panelProps = {
-      ...panelProps,
-      checkmate: true,
-      winningPlayer: fenComponents.onMove === "w" ? "b" : "w"
-    }
-  } else if (stalemateFlag) {
-    panelProps = {
-      ...panelProps,
-      stalemate: true
-    }
-  }
+  props.gameEnd(checkmateFlag, stalemateFlag, fenComponents.onMove === "w" ? "b" : "w");
 
   // STATES
   // Map containing valid moves
@@ -388,7 +369,7 @@ export default function Board(props: boardProps) {
    */
   function handleClick(event: any) {
     // no moves can be made if a player has run out of time
-    if (props.timeOverFlag.isTimeOver) {
+    if (props.gameOverFlag) {
       return;
     }
     let currentPosition = event.target.id;
@@ -518,7 +499,7 @@ export default function Board(props: boardProps) {
   function handleDragStart(event: any) {
     event.dataTransfer.effectAllowed = "move";
     // no moves can be made if a player has run out of time
-    if (props.timeOverFlag.isTimeOver) {
+    if (props.gameOverFlag) {
       return;
     }
     let currentPosition = event.target.id;
@@ -619,14 +600,6 @@ export default function Board(props: boardProps) {
         onDragEnter={handleDragEnter}
       >
         {boardSquares}
-      </div>
-      <div className={boardstyles["panel-container"]}>
-        <Panel
-          checkmate={panelProps.checkmate}
-          winningPlayer={panelProps.winningPlayer}
-          stalemate={panelProps.stalemate}
-          timeOut={panelProps.timeOut}
-        />
       </div>
     </div>
   );

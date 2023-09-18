@@ -5,22 +5,6 @@
   min-height: 100vh;
 }
 
-.game-container {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-}
-
-.panel-container {
-  display: flex;
-  justify-content: center;
-}
-
-.checkmate {
-  color: white;
-}
-
 .home-lobby {
   min-height: 100vh;
   display: flex;

@@ -1,5 +1,5 @@
 import { playerType } from "../types/Types";
-import styles from '@/styles/App.module.css';
+import styles from "@/styles/Game.module.css"
 
 export interface PanelProps {
   checkmate: boolean;
@@ -14,28 +14,29 @@ export interface PanelProps {
 export default function Panel({
   checkmate, winningPlayer, stalemate, timeOut }: PanelProps) {
 
-  let message = '';
+  let message;
 
   if (checkmate) {
-    message = `Checkmate.`;
-    message = winningPlayer === 'w' ? message + ' White is victorious.' : message + ' Black is victorious.';
+    message = (
+      <p>Checkmate.<br />{winningPlayer === 'w' ? 'White is victorious.' : ' Black is victorious.'}</p>
+    );
   }
 
   if (stalemate) {
-    message = 'Stalemate. Draw.';
+    message = <p>Stalemate.<br />Draw.</p>;
   }
 
   if (timeOut.isTimeOver) {
     if (timeOut.winner === 'w') {
-      message = 'Black ran out of time. White is victorious.'
+      message = <p>Black time out.<br />White is victorious.</p>;
     } else {
-      message = 'White ran out of time. Black is victorious.'
+      message = <p>White time out.<br />Black is victorious.</p>;
     }
   }
 
   return (
-    <div className={styles.checkmate}>
-      <h1>{message}</h1>
+    <div className={styles['panel-parent-container']}>
+      {message}
     </div>
   );
 }

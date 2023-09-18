@@ -1,0 +1,25 @@
+.game {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+}
+
+.timer-parent-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.history-parent-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.panel-parent-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
