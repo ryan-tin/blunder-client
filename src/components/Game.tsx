@@ -23,11 +23,16 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
   const processor = useRef(Processor.Instance);
   const [whiteTime, setWhiteTime] = useState(timeControl.totalTime * 60);
   const [blackTime, setBlackTime] = useState(timeControl.totalTime * 60);
+  const [timeOverFlag, setTimeOverFlag] = useState({
+    isTimeOver: false,
+    winner: '' as playerType
+  });
 
   // useEffect:
   // populated dependency array makes useEffect run on dependency change
   // empty dependency array makes useEffect run only after the initial render
   // no dependency array makes this run after every render
+  // BUG: socket reconnects and disconnects every tick
   useEffect(() => {
     socket.connect(); // does not reconnect if a connection is already established
     socket.on('connect', () => {
@@ -39,9 +44,21 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
 
     // server sends updated times once every second
     socket.on('time', (message: any) => {
-      // console.log('time', message);
       setWhiteTime(message.white);
       setBlackTime(message.black);
+      // if a player runs out of time, they lose
+      if (message.white <= 0) {
+        setTimeOverFlag({
+          isTimeOver: true,
+          winner: 'b' as playerType
+        });
+      } else if (message.black <= 0) {
+        // should be true
+        setTimeOverFlag({
+          isTimeOver: true,
+          winner: 'w' as playerType
+        });
+      }
     })
 
     // listen for opponent moves
@@ -94,6 +111,7 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
         lastMove={lastMove}
         perspective={perspective}
         sendMove={handleSendNextMove}
+        timeOverFlag={timeOverFlag}
       />
       <Timer
         time={perspective === 'w' ? whiteTime : blackTime}

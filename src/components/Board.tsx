@@ -38,9 +38,13 @@ interface boardProps {
   perspective: playerType;
   sendMove: Function;
   lastMove: lastMove;
+  timeOverFlag: {
+    isTimeOver: boolean;
+    winner: playerType
+  }
 }
 
-const DEBUG = true;
+const DEBUG = false;
 
 export default function Board(props: boardProps) {
   const processor = Processor.Instance;
@@ -62,7 +66,8 @@ export default function Board(props: boardProps) {
   const stalemateFlag: boolean = processor.stalemate;
   let panelProps = {
     checkmate: false,
-    stalemate: false
+    stalemate: false,
+    timeOut: props.timeOverFlag
   } as PanelProps;
 
   if (checkmateFlag) {
@@ -284,7 +289,7 @@ export default function Board(props: boardProps) {
     // remove the king
     positionMap.delete(selectedPiece);
     const nextPosition = new Map(positionMap);
-    let lastMove = {from: selectedPiece, to: null} as lastMove;
+    let lastMove = { from: selectedPiece, to: null } as lastMove;
     switch (castleDirection) {
       case 'K':
         nextPosition.delete('0,7'); // remove the rook
@@ -342,7 +347,7 @@ export default function Board(props: boardProps) {
     positionMap.delete(selectedPiece);
     positionMap.set(currentPosition, movedPiece);
 
-    const lastMove = {from: selectedPiece, to: currentPosition};
+    const lastMove = { from: selectedPiece, to: currentPosition };
 
     // get the enpassant target square
     const enpassantTargetSquare = getEnPassantTargetSquare(movedPiece, selectedPiece, currentPosition);
@@ -434,7 +439,7 @@ export default function Board(props: boardProps) {
         );
         clear();
         setShowPromotion(false);
-        let lastMove: lastMove = {from: null, to: promotionSquareCoord};
+        let lastMove: lastMove = { from: null, to: promotionSquareCoord };
         let temp = getCoordFromCoordType(promotionSquareCoord);
         if (fenComponents.onMove === 'w') {
           lastMove.from = `${(parseInt(temp.rank) - 1).toString()},${temp.file}` as coordinateType;
@@ -612,6 +617,7 @@ export default function Board(props: boardProps) {
           checkmate={panelProps.checkmate}
           winningPlayer={panelProps.winningPlayer}
           stalemate={panelProps.stalemate}
+          timeOut={panelProps.timeOut}
         />
       </div>
     </div>
