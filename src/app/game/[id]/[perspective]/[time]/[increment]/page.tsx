@@ -14,17 +14,26 @@ export default function GameRoom({ params }: {
 
   return (
     <main>
-      <h1>
-        {DEBUG && `welcome to game room: ${params.id}`}
-      </h1>
-      <Game
-        perspective={params.perspective as playerType}
-        roomId={params.id}
-        timeControl={{
-          totalTime: params.time,
-          increment: params.increment
-        }}
-      />
+      <div style={{
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        margin: "5vh"
+      }}>
+        {DEBUG &&
+          <h1>
+            {`welcome to game room: ${params.id}`}
+          </h1>
+        }
+        <Game
+          perspective={params.perspective as playerType}
+          roomId={params.id}
+          timeControl={{
+            totalTime: params.time,
+            increment: params.increment
+          }}
+        />
+      </div>
     </main>
   );
 }

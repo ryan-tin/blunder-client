@@ -1,0 +1,19 @@
+.timer {
+  margin: 5vh 0;
+  padding: 1vh;
+  background-color: var(--custom-color-brand);
+}
+
+.timer-inactive {
+  opacity: 0.33;
+}
+
+.timer-font {
+  font-size: 3rem;
+  color: var(--custom-bg-color);
+  font-family: "Noto Sans", Sans-Serif; /* monospace font to avoid wiggle */
+}
+
+.timer-timeout {
+  background-color: red;
+}
