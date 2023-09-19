@@ -32,6 +32,7 @@ import boardstyles from '@/styles/Board.module.css';
 import squarestyles from '@/styles/Board.module.css';
 import { Processor } from '@/utils/Processor';
 import { getCoordFromCoordType } from '@/utils/regex';
+import CoordinateSquare from './CoordinateSquare';
 
 interface boardProps {
   FEN: string;
@@ -177,13 +178,44 @@ export default function Board(props: boardProps) {
             </Square>
           </span >
         );
+
+        if (col == 0) {
+          boardRow.push(
+            <CoordinateSquare vertical={true}>
+              <p>{row + 1}</p>
+            </CoordinateSquare>
+          )
+        }
       }
+
       boardSquares.push(
         <div key={row} className={boardstyles["Board-row-container"]}>
           {boardRow}
         </div>
       )
     }
+
+    let horizontalCoordinates = [];
+    for (let i = 0; i <= 7; i++) {
+      horizontalCoordinates.push(
+        <CoordinateSquare vertical={false}>
+          <p>{String.fromCharCode('a'.charCodeAt(0) + i)}</p>
+        </CoordinateSquare>
+      );
+    }
+    horizontalCoordinates.push(
+      <span style={{
+        height: '1vmax',
+        width: '1vmax'
+      }}>
+      </span>
+    )
+
+    boardSquares.push(
+      <div className={boardstyles["Board-row-container"]}>
+        {horizontalCoordinates}
+      </div>
+    );
     return boardSquares;
   }
 
@@ -248,13 +280,44 @@ export default function Board(props: boardProps) {
             </Square>
           </span>
         );
+
+        if (col == 0) {
+          boardRow.push(
+            <CoordinateSquare vertical={true}>
+              <p>{row + 1}</p>
+            </CoordinateSquare>
+          )
+        }
       }
+
       boardSquares.push(
         <div key={row} className={boardstyles["Board-row-container"]}>
           {boardRow}
         </div>
       )
     }
+
+    let horizontalCoordinates = [];
+    for (let i = 0; i <= 7; i++) {
+      horizontalCoordinates.push(
+        <CoordinateSquare vertical={false}>
+          <p>{String.fromCharCode('h'.charCodeAt(0) - i)}</p>
+        </CoordinateSquare>
+      );
+    }
+    horizontalCoordinates.push(
+      <span style={{
+        height: '1vmax',
+        width: '1vmax'
+      }}>
+      </span>
+    )
+
+    boardSquares.push(
+      <div className={boardstyles["Board-row-container"]}>
+        {horizontalCoordinates}
+      </div>
+    );
     return boardSquares;
   }
 
@@ -378,7 +441,7 @@ export default function Board(props: boardProps) {
    */
   function handleClick(event: any) {
     // no moves can be made if a player has run out of time
-    if (props.gameOverFlag) {
+    if (props.gameOverFlag || props.inHistory) {
       return;
     }
     let currentPosition = event.target.id;
@@ -508,7 +571,7 @@ export default function Board(props: boardProps) {
   function handleDragStart(event: any) {
     event.dataTransfer.effectAllowed = "move";
     // no moves can be made if a player has run out of time
-    if (props.gameOverFlag) {
+    if (props.gameOverFlag || props.inHistory) {
       return;
     }
     let currentPosition = event.target.id;

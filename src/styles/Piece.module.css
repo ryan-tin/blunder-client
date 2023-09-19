@@ -1,6 +1,7 @@
 .Piece {
-  /* height: 9.5vmin; */
-  height: 10vmin;
+  /* correct one is 5vmax */
+  height: 5vmax;
+  /* for debugging */
   /* height: 5vmin; */
   width: auto;
 }

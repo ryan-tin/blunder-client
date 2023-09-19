@@ -33,10 +33,28 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 10vmin;
-  width: 10vmin;
+  height: 5vmax;
+  width: 5vmax;
   border: none;
   cursor: pointer;
+}
+
+.square-coordinate-vertical {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 5vmax;
+  width: 1vmax;
+  border: none;
+}
+
+.square-coordinate-horizontal {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 1vmax;
+  width: 5vmax;
+  border: none;
 }
 
 .promotion-parent {
