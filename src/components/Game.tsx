@@ -26,7 +26,7 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
   const processor = useRef(Processor.Instance);
 
   // history of moves
-  const [moveHistory, setMoveHistory] = useState([{
+  const [moveHistoryFEN, setMoveHistoryFEN] = useState([{
     FEN: startingFEN,
     lastMove: {
       from: "" as coordinateType,
@@ -34,7 +34,7 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
     }
   }] as historyEntry[]);
   const historyIndex = useRef(0);
-  const inHistory = historyIndex.current !== moveHistory.length - 1;
+  const inHistory = historyIndex.current !== moveHistoryFEN.length - 1;
 
   // timer states
   const [whiteTime, setWhiteTime] = useState(timeControl.totalTime * 60);
@@ -101,8 +101,8 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
       processor.current.FEN = FEN;
       toggleTimers();
       // store new history
-      historyIndex.current = moveHistory.length;
-      setMoveHistory([...moveHistory, { FEN: FEN, lastMove: lastMove }])
+      historyIndex.current = moveHistoryFEN.length;
+      setMoveHistoryFEN([...moveHistoryFEN, { FEN: FEN, lastMove: lastMove }])
     })
 
     /**
@@ -176,17 +176,17 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
       if (event.key === "ArrowUp") {
         historyIndex.current = 0;
       } else if (event.key === "ArrowDown") {
-        historyIndex.current = moveHistory.length - 1;
+        historyIndex.current = moveHistoryFEN.length - 1;
       } else if (event.key === "ArrowLeft") {
         historyIndex.current = Math.max(historyIndex.current - 1, 0);
       } else if (event.key === "ArrowRight") {
-        historyIndex.current = Math.min(historyIndex.current + 1, moveHistory.length - 1);
+        historyIndex.current = Math.min(historyIndex.current + 1, moveHistoryFEN.length - 1);
       } else {
         // don't do anything if any other key is pressed
         return;
       }
-      setFEN(moveHistory[historyIndex.current].FEN);
-      setLastMove(moveHistory[historyIndex.current].lastMove);
+      setFEN(moveHistoryFEN[historyIndex.current].FEN);
+      setLastMove(moveHistoryFEN[historyIndex.current].lastMove);
     }
 
     window.addEventListener('keydown', handleKeyDown);
@@ -230,7 +230,10 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
         inHistory={inHistory}
       />
       <div className={gamestyles['history-parent-container']}>
-        <History />
+      {
+        DEBUG &&
+        <History moveHistory={moveHistoryFEN}/>
+      }
       </div>
     </div>
   );

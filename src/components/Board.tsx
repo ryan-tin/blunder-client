@@ -25,8 +25,7 @@ import {
   getFullMoveNumber,
   getHalfMoveClock,
   newCastlingFENPostRookOrKingMove,
-  nextPlayer,
-  parseFENStringBoardPosition,
+  nextPlayer
 } from '@/utils/fen';
 import boardstyles from '@/styles/Board.module.css';
 import squarestyles from '@/styles/Board.module.css';
@@ -52,19 +51,24 @@ export default function Board(props: boardProps) {
   const lastMove = props.lastMove;
 
   let positionMap: boardType;
+  let checkPosition: coordinateType;
   if (props.inHistory) {
-    positionMap = parseFENStringBoardPosition(FEN);
+    // compute necessary values for history
+    processor.h_FEN = props.FEN;
+    processor.H_RELOAD();
+    positionMap = processor.h_positionMap as boardType;
+    checkPosition = processor.h_kingCheckedPosition;
   } else {
     // FEN changes when opponent sends it through the websocket
     // recompute values every time the FEN changes
     processor.RELOAD();
     positionMap = processor.positionMap as boardType;
+    checkPosition = processor.kingCheckedPosition as coordinateType;
   }
 
   const fenComponents: fenComponents = processor.fenComponents;
   const controlledSquares: controlledSquares =
     processor.controlledSquares as controlledSquares;
-  const checkPosition: coordinateType = processor.kingCheckedPosition;
 
   // game termination panel: stalemate & checkmate
   const checkmateFlag: boolean = processor.checkmate;

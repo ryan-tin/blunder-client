@@ -26,6 +26,24 @@ export class Processor {
   private _checkmate: boolean = false;
   private _stalemate: boolean = false;
 
+  // data for HISTORY
+  private _H_fen: string | null = null;
+  private _H_fenComponents: Types.fenComponents = {
+    position: null,
+    onMove: null,
+    castle: null,
+    enPassantTargetSquare: null,
+    halfMoveClock: null,
+    fullMoveNumber: null
+  }
+  private _H_positionMap: Types.boardType | null = null;
+  private _H_kingPosition: Types.kingPosition = {
+    white: null,
+    black: null
+  }
+  private _H_controlledSquares: Types.controlledSquares | null = null;
+  private _H_kingCheckedPosition: Types.coordinateType | null = null;
+
   private constructor(FEN: string) {
     this._fen = FEN;
     this.RELOAD()
@@ -38,7 +56,7 @@ export class Processor {
     const startingFEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
     // const TESTcheckmate = '1k6/4Q3/8/8/8/5B2/8/3K4 w - - 0 1';
     // const TESTstalemate = '3k4/1Q6/8/8/8/5B2/8/3K4 w - - 12 7';
-    // const TESTdiscoverCheck = 'k7/8/8/8/B7/Q7/8/3K4 w - - 0 1';
+    const TESTdiscoverCheck = 'k7/8/8/8/B7/Q7/8/3K4 w - - 0 1';
     // const TESTcannotBlockDoubleCheck = 'k1n5/8/8/8/B7/Q7/8/3K4 w - - 0 1';
     // const TESTblockingCheck = 'k7/2r5/8/8/B7/Q7/8/3K4 w - - 0 1';
     // const TESTenPassant = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1';
@@ -46,7 +64,7 @@ export class Processor {
     // const TESTpromotion = '1k6/1q3P2/8/8/8/8/8/2K5 w - - 0 1';
     // const TESTblackPromotion = '1k6/1q3P2/8/8/8/8/5p2/2K5 w - - 0 1';
     // const TESTcastling = 'r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1';
-    return this._instance || (this._instance = new this(startingFEN));
+    return this._instance || (this._instance = new this(TESTdiscoverCheck));
   }
   public get fen() { return this._fen; }
   public get positionMap() { return this._positionMap; }
@@ -56,15 +74,19 @@ export class Processor {
   public get kingCheckedPosition() { return this._kingCheckedPosition; }
   public get checkmate() { return this._checkmate; }
   public get stalemate() { return this._stalemate; }
+
+  // getters for HISTORY
+  public get h_positionMap() { return this._H_positionMap; }
+  public get h_kingCheckedPosition() { return this._H_kingCheckedPosition; }
   // getters END
 
   // setters
   public set FEN(newFEN: string) { this._fen = newFEN; }
+  public set h_FEN(newFEN: string) { this._H_fen = newFEN; }
   // setters END
 
   /**
     * refresh private variables
-  * useful when there is a new FEN?
     */
   public RELOAD(): void {
     this.parseFEN();
@@ -77,17 +99,41 @@ export class Processor {
   }
 
   /**
+    * refresh private variables for a position in history
+    */
+  public H_RELOAD(): void {
+    this.parseFEN(true);
+    this._H_positionMap =
+      FenUtil.parseFENPositionToMap(this._H_fenComponents.position!);
+    this._H_kingPosition = this.findKingPosition(this._H_positionMap);
+    this.findControlledSquares(true);
+    this.computeCheck(true);
+  }
+
+  /**
     * parse the FEN string into its component parts
     */
-  private parseFEN(): void {
-    [
-      this._fenComponents.position,
-      this._fenComponents.onMove,
-      this._fenComponents.castle,
-      this._fenComponents.enPassantTargetSquare,
-      this._fenComponents.halfMoveClock,
-      this._fenComponents.fullMoveNumber,
-    ] = FenUtil.parseFENString2(this._fen);
+  private parseFEN(isHistory?: boolean): void {
+    if (isHistory) {
+      [
+        this._H_fenComponents.position,
+        this._H_fenComponents.onMove,
+        this._H_fenComponents.castle,
+        this._H_fenComponents.enPassantTargetSquare,
+        this._H_fenComponents.halfMoveClock,
+        this._H_fenComponents.fullMoveNumber,
+      ] = FenUtil.parseFENString2(this._H_fen!);
+
+    } else {
+      [
+        this._fenComponents.position,
+        this._fenComponents.onMove,
+        this._fenComponents.castle,
+        this._fenComponents.enPassantTargetSquare,
+        this._fenComponents.halfMoveClock,
+        this._fenComponents.fullMoveNumber,
+      ] = FenUtil.parseFENString2(this._fen);
+    }
   }
 
   /**
@@ -110,26 +156,45 @@ export class Processor {
     return kingPosition;
   }
 
+  // NOTE: this is a different to the function with the same name in validMoves.ts
   /**
     * finds the controlled squares for both white and black in this position
     */
-  private findControlledSquares() {
-    // NOTE: this is a different to the function with the same name in validMoves.ts
-    let whiteControlledSquares = new Map() as Types.validMovesBoardType;
-    let blackControlledSquares = new Map() as Types.validMovesBoardType;
-    for (let [coord, piece] of this._positionMap!) {
-      const mapToAdd = findControlledSquares(coord, piece, this._positionMap!);
-      if (isWhitePiece(piece)) {
-        whiteControlledSquares = new Map([...whiteControlledSquares, ...mapToAdd]);
-      } else if (isBlackPiece(piece)) {
-        blackControlledSquares = new Map([...blackControlledSquares, ...mapToAdd]);
-      } else {
-        throw new Error('all pieces must be either black or white');
+  private findControlledSquares(history?: boolean) {
+    if (history) {
+      let whiteControlledSquares = new Map() as Types.validMovesBoardType;
+      let blackControlledSquares = new Map() as Types.validMovesBoardType;
+      for (let [coord, piece] of this._H_positionMap!) {
+        const mapToAdd = findControlledSquares(coord, piece, this._H_positionMap!);
+        if (isWhitePiece(piece)) {
+          whiteControlledSquares = new Map([...whiteControlledSquares, ...mapToAdd]);
+        } else if (isBlackPiece(piece)) {
+          blackControlledSquares = new Map([...blackControlledSquares, ...mapToAdd]);
+        } else {
+          throw new Error('all pieces must be either black or white');
+        }
       }
-    }
-    this._controlledSquares = {
-      white: whiteControlledSquares,
-      black: blackControlledSquares
+      this._H_controlledSquares = {
+        white: whiteControlledSquares,
+        black: blackControlledSquares
+      }
+    } else {
+      let whiteControlledSquares = new Map() as Types.validMovesBoardType;
+      let blackControlledSquares = new Map() as Types.validMovesBoardType;
+      for (let [coord, piece] of this._positionMap!) {
+        const mapToAdd = findControlledSquares(coord, piece, this._positionMap!);
+        if (isWhitePiece(piece)) {
+          whiteControlledSquares = new Map([...whiteControlledSquares, ...mapToAdd]);
+        } else if (isBlackPiece(piece)) {
+          blackControlledSquares = new Map([...blackControlledSquares, ...mapToAdd]);
+        } else {
+          throw new Error('all pieces must be either black or white');
+        }
+      }
+      this._controlledSquares = {
+        white: whiteControlledSquares,
+        black: blackControlledSquares
+      }
     }
   }
 
@@ -137,21 +202,40 @@ export class Processor {
     * check whether the white or black king in the current position is in check
     * updates the variable if the king is, else sets it to null
     */
-  private computeCheck(): void {
-    if (
-      this._fenComponents.onMove === 'w' &&
-      this._controlledSquares!.black.has(this._kingPosition.white)) {
+  private computeCheck(forHistory?: boolean): void {
+    if (forHistory) {
+      if (
+        this._H_fenComponents.onMove === 'w' &&
+        this._H_controlledSquares!.black.has(this._H_kingPosition.white)) {
 
-      this._kingCheckedPosition = this._kingPosition.white;
+        this._H_kingCheckedPosition = this._H_kingPosition.white;
 
-    } else if (
-      this._fenComponents.onMove === 'b' &&
-      this._controlledSquares!.white.has(this._kingPosition.black)) {
+      } else if (
+        this._H_fenComponents.onMove === 'b' &&
+        this._H_controlledSquares!.white.has(this._H_kingPosition.black)) {
 
-      this._kingCheckedPosition = this._kingPosition.black;
+        this._H_kingCheckedPosition = this._H_kingPosition.black;
+
+      } else {
+        this._H_kingCheckedPosition = null;
+      }
 
     } else {
-      this._kingCheckedPosition = null;
+      if (
+        this._fenComponents.onMove === 'w' &&
+        this._controlledSquares!.black.has(this._kingPosition.white)) {
+
+        this._kingCheckedPosition = this._kingPosition.white;
+
+      } else if (
+        this._fenComponents.onMove === 'b' &&
+        this._controlledSquares!.white.has(this._kingPosition.black)) {
+
+        this._kingCheckedPosition = this._kingPosition.black;
+
+      } else {
+        this._kingCheckedPosition = null;
+      }
     }
 
   }
@@ -171,7 +255,7 @@ export class Processor {
     if (this._kingCheckedPosition === null && this._checkmate) {
       this._stalemate = true;
       this._checkmate = false;
-    } 
+    }
   }
 
   /** 
