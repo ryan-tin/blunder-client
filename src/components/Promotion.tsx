@@ -2,6 +2,8 @@
 import Piece from "./pieces/Piece";
 import { boardType, coordinateType, playerType } from "@/types/Types";
 import styles from '@/styles/Board.module.css';
+import CoordinateSquare from "./CoordinateSquare";
+import boardstyles from '@/styles/Board.module.css';
 
 interface PromotionProps {
   player: playerType;
@@ -60,6 +62,7 @@ export default function Promotion(props: PromotionProps) {
         let value = (row * 8) + col;
         let child = (
           <Piece
+            draggable={false}
             pieceType={piece}
             coordinates={`${row},${col}` as coordinateType}
           />
@@ -74,11 +77,40 @@ export default function Promotion(props: PromotionProps) {
             {child}
           </span>
         );
+        if (col == 0) {
+          boardRow.push(
+            <CoordinateSquare vertical={true}>
+              <p>{row + 1}</p>
+            </CoordinateSquare>
+          )
+        }
       }
       boardSquares.push(
         <div key={row} className={styles['Board-row-container']}> {boardRow} </div>
       )
     }
+
+    let horizontalCoordinates = [];
+    for (let i = 0; i <= 7; i++) {
+      horizontalCoordinates.push(
+        <CoordinateSquare vertical={false}>
+          <p>{String.fromCharCode('a'.charCodeAt(0) + i)}</p>
+        </CoordinateSquare>
+      );
+    }
+    horizontalCoordinates.push(
+      <span style={{
+        height: '1vmax',
+        width: '1vmax'
+      }}>
+      </span>
+    )
+
+    boardSquares.push(
+      <div className={boardstyles["Board-row-container"]}>
+        {horizontalCoordinates}
+      </div>
+    );
     return boardSquares;
 
   }
@@ -96,6 +128,7 @@ export default function Promotion(props: PromotionProps) {
         let value = (row * 8) + col;
         let child = (
           <Piece
+            draggable={false}
             pieceType={piece}
             coordinates={`${row},${col}` as coordinateType}
           />
@@ -110,10 +143,36 @@ export default function Promotion(props: PromotionProps) {
             {child}
           </span>
         );
+
+        if (col == 0) {
+          boardRow.push(
+            <CoordinateSquare vertical={true}>
+              <p>{row + 1}</p>
+            </CoordinateSquare>
+          )
+        }
       }
+
       boardSquares.push(
         <div key={row} className={styles['Board-row-container']}> {boardRow} </div>
       )
+
+      let horizontalCoordinates = [];
+      for (let i = 0; i <= 7; i++) {
+        horizontalCoordinates.push(
+          <CoordinateSquare vertical={false}>
+            <p>{String.fromCharCode('h'.charCodeAt(0) - i)}</p>
+          </CoordinateSquare>
+        );
+      }
+      horizontalCoordinates.push(
+        <span style={{
+          height: '1vmax',
+          width: '1vmax'
+        }}>
+        </span>
+      )
+
     }
     return boardSquares;
 
