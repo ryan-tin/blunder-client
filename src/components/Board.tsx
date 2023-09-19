@@ -26,6 +26,7 @@ import {
   getHalfMoveClock,
   newCastlingFENPostRookOrKingMove,
   nextPlayer,
+  parseFENStringBoardPosition,
 } from '@/utils/fen';
 import boardstyles from '@/styles/Board.module.css';
 import squarestyles from '@/styles/Board.module.css';
@@ -39,6 +40,7 @@ interface boardProps {
   lastMove: lastMove;
   gameOverFlag: boolean;
   gameEnd: Function;
+  inHistory: boolean;
 }
 
 const DEBUG = false;
@@ -47,12 +49,17 @@ export default function Board(props: boardProps) {
   const processor = Processor.Instance;
   const FEN = props.FEN;
   const lastMove = props.lastMove;
-  // FEN changes when opponent sends it through the websocket
-  // recompute values every time the FEN changes
-  processor.RELOAD();
 
+  let positionMap: boardType;
+  if (props.inHistory) {
+    positionMap = parseFENStringBoardPosition(FEN);
+  } else {
+    // FEN changes when opponent sends it through the websocket
+    // recompute values every time the FEN changes
+    processor.RELOAD();
+    positionMap = processor.positionMap as boardType;
+  }
 
-  const positionMap: boardType = processor.positionMap as boardType;
   const fenComponents: fenComponents = processor.fenComponents;
   const controlledSquares: controlledSquares =
     processor.controlledSquares as controlledSquares;
@@ -62,7 +69,9 @@ export default function Board(props: boardProps) {
   const checkmateFlag: boolean = processor.checkmate;
   const stalemateFlag: boolean = processor.stalemate;
 
-  props.gameEnd(checkmateFlag, stalemateFlag, fenComponents.onMove === "w" ? "b" : "w");
+  if (checkmateFlag || stalemateFlag) {
+    props.gameEnd(checkmateFlag, stalemateFlag, fenComponents.onMove === "w" ? "b" : "w");
+  }
 
   // STATES
   // Map containing valid moves

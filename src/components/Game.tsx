@@ -1,6 +1,6 @@
 'use client'
 
-import { playerType, lastMove, timeControl } from "@/types/Types";
+import { playerType, lastMove, timeControl, historyEntry, coordinateType } from "@/types/Types";
 import Board from "@/components/Board";
 import { io } from "socket.io-client";
 import { useEffect, useRef, useState } from "react";
@@ -25,13 +25,24 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
   const [lastMove, setLastMove] = useState({ from: null, to: null } as lastMove)
   const processor = useRef(Processor.Instance);
 
+  // history of moves
+  const [moveHistory, setMoveHistory] = useState([{
+    FEN: startingFEN,
+    lastMove: {
+      from: "" as coordinateType,
+      to: "" as coordinateType
+    }
+  }] as historyEntry[]);
+  const historyIndex = useRef(0);
+  const inHistory = historyIndex.current !== moveHistory.length - 1;
+
   // timer states
   const [whiteTime, setWhiteTime] = useState(timeControl.totalTime * 60);
   const [blackTime, setBlackTime] = useState(timeControl.totalTime * 60);
   const [whiteTimerActive, setWhiteTimerActive] = useState(true);
   const [blackTimerActive, setBlackTimerActive] = useState(true);
 
-  // panel state
+  // states for panel
   const [panelProps, setPanelProps] = useState({
     checkmate: false,
     stalemate: false,
@@ -40,8 +51,7 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
       isTimeOver: false,
       winner: '' as playerType
     }
-  } as PanelProps );
-
+  } as PanelProps);
 
   // useEffect:
   // populated dependency array makes useEffect run on dependency change
@@ -90,6 +100,9 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
       setLastMove(lastMove);
       processor.current.FEN = FEN;
       toggleTimers();
+      // store new history
+      historyIndex.current = moveHistory.length;
+      setMoveHistory([...moveHistory, { FEN: FEN, lastMove: lastMove }])
     })
 
     /**
@@ -123,29 +136,63 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
     // send FEN to opponent & yourself
     // update own board when the move arrives through socket
     socket.emit('send move', message);
-  }
+  };
 
   /**
    * stop the timer in the server
    * updates game end message
    */
   function handleGameEnd(checkmate: boolean, stalemate: boolean, winner: playerType) {
-    if (!checkmate && !stalemate) {
-      return;
-    } else if (checkmate) {
-      setPanelProps({
-        ...panelProps,
-        checkmate: true,
-        winningPlayer: winner
-      })
+    if (checkmate) {
+      // additional if check so that state does not infinitely render
+      // setState by default ALWAYS causes a component to rerender
+      if (panelProps.checkmate !== true) {
+        setPanelProps({
+          ...panelProps,
+          checkmate: true,
+          winningPlayer: winner
+        })
+      }
     } else {
-      setPanelProps({
-        ...panelProps,
-        stalemate: true
-      });
+      if (panelProps.stalemate !== true) {
+        setPanelProps({
+          ...panelProps,
+          stalemate: true
+        });
+      }
     }
     socket.emit('game end', roomId);
-  }
+  };
+
+  useEffect(() => {
+    /**
+     * use the arrow keys to move back and forth between history
+     */
+    function handleKeyDown(event: any) {
+      // ignore auto repeated key presses (i.e., when key is held down)
+      if (event.repeat === true) {
+        return;
+      }
+      if (event.key === "ArrowUp") {
+        historyIndex.current = 0;
+      } else if (event.key === "ArrowDown") {
+        historyIndex.current = moveHistory.length - 1;
+      } else if (event.key === "ArrowLeft") {
+        historyIndex.current = Math.max(historyIndex.current - 1, 0);
+      } else if (event.key === "ArrowRight") {
+        historyIndex.current = Math.min(historyIndex.current + 1, moveHistory.length - 1);
+      } else {
+        // don't do anything if any other key is pressed
+        return;
+      }
+      setFEN(moveHistory[historyIndex.current].FEN);
+      setLastMove(moveHistory[historyIndex.current].lastMove);
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  })
 
   return (
     <div className={gamestyles.game}>
@@ -180,6 +227,7 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
         sendMove={handleSendNextMove}
         gameEnd={handleGameEnd}
         gameOverFlag={panelProps.timeOut.isTimeOver}
+        inHistory={inHistory}
       />
       <div className={gamestyles['history-parent-container']}>
         <History />

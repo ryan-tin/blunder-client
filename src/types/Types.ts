@@ -51,3 +51,8 @@ export interface timeControl {
   totalTime: number,
   increment: number
 }
+
+export interface historyEntry {
+  FEN: string,
+  lastMove: lastMove
+}
