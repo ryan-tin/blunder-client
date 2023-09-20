@@ -172,16 +172,6 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
     socket.emit('game end', roomId);
   };
 
-  /**
-   * ammend the chess notation
-   */
-  function appendNotation(suffix: string) {
-    // exactly the same except the move has the + sign
-    let append = moveHistory[moveHistory.length - 1];
-    append.chessNotation += suffix;
-    setMoveHistory([...moveHistory.slice(0, -1), append]);
-  }
-
   useEffect(() => {
     /**
      * use the arrow keys to move back and forth between history
@@ -240,7 +230,6 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
         gameEnd={handleGameEnd}
         gameOverFlag={panelProps.timeOut.isTimeOver}
         inHistory={inHistory}
-        appendNotation={appendNotation}
       />
       <div className={gamestyles['history-parent-container']}>
         <History moveHistory={moveHistory} />

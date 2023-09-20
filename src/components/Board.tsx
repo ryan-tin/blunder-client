@@ -42,7 +42,6 @@ interface boardProps {
   gameOverFlag: boolean;
   gameEnd: Function;
   inHistory: boolean;
-  appendNotation: Function
 }
 
 const DEBUG = false;
@@ -494,18 +493,24 @@ export default function Board(props: boardProps) {
 
       if (piece !== undefined) {
         const nextPosition = new Map(positionMap);
-        const toDelete = promotionSquareCoord!.split(',');
-
-        let pawnRank: number | string = parseInt(toDelete[0]);
-        if (fenComponents.onMove === 'w') {
-          pawnRank--;
+        if (positionMap.has(promotionSquareCoord)) {
+          // this is a capture to promote
+          // delete capturing pawn
+          nextPosition.delete(selectedPiece);
         } else {
-          pawnRank++;
+          // pawn push to promote
+          const toDelete = promotionSquareCoord!.split(',');
+          let pawnRank: number | string = parseInt(toDelete[0]);
+          if (fenComponents.onMove === 'w') {
+            pawnRank--;
+          } else {
+            pawnRank++;
+          }
+          pawnRank = pawnRank.toString();
+          toDelete[0] = pawnRank;
+          const pawnCoord = toDelete.join();
+          nextPosition.delete(pawnCoord as coordinateType);
         }
-        pawnRank = pawnRank.toString();
-        toDelete[0] = pawnRank;
-        const pawnCoord = toDelete.join();
-        nextPosition.delete(pawnCoord as coordinateType);
 
         nextPosition.set(promotionSquareCoord, piece as pieceType);
         const nextFENString = componentsToFEN(
@@ -518,15 +523,12 @@ export default function Board(props: boardProps) {
         );
         clear();
         setShowPromotion(false);
-        let lastMove: lastMove = { from: null, to: promotionSquareCoord };
+        let lastMove: lastMove = { from: selectedPiece, to: promotionSquareCoord };
         let temp = getCoordFromCoordType(promotionSquareCoord);
-        if (fenComponents.onMove === 'w') {
-          lastMove.from = `${(parseInt(temp.rank) - 1).toString()},${temp.file}` as coordinateType;
-        } else {
-          lastMove.from = `${(parseInt(temp.rank) + 1).toString()},${temp.file}` as coordinateType;
-        }
         let chessNotation = coordToChessNotation(promotionSquareCoord) + "=" + piece.toUpperCase()
         props.sendMove(nextFENString, lastMove, chessNotation);
+      } else {
+        setShowPromotion(false);
       }
     }
     // valid castling move is clicked
