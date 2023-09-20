@@ -1,0 +1,5 @@
+.current-history-state {
+  background-color: var(--custom-color-brand);
+  padding: 1px 10px;
+  color: var(--custom-bg-color);
+}

@@ -232,7 +232,7 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
         inHistory={inHistory}
       />
       <div className={gamestyles['history-parent-container']}>
-        <History moveHistory={moveHistory} />
+        <History moveHistory={moveHistory} historyIndex={historyIndex.current} />
       </div>
     </div>
   );

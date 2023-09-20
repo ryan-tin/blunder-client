@@ -1,7 +1,9 @@
 import { historyEntry } from "@/types/Types";
+import styles from "@/styles/History.module.css";
 
 interface historyProps {
   moveHistory: historyEntry[];
+  historyIndex: number;
 }
 
 export default function History(props: historyProps) {
@@ -11,7 +13,9 @@ export default function History(props: historyProps) {
       <h1>Move History</h1>
       <ol>
         {props.moveHistory.map((element: historyEntry, index: number, list: historyEntry[]) => {
-          if (index === 0 || index % 2 === 0 ) {
+          if (index === 0 || index % 2 === 0) {
+            // don't show starting position as a state
+            // and black moves are shown on the same line as white moves
             return;
           }
           let whiteMove = element.chessNotation;
@@ -20,7 +24,7 @@ export default function History(props: historyProps) {
           return (
             <li key={index}
               style={{
-                margin: '10px 0'
+                margin: '0px 0',
               }}
             >
               <span
@@ -29,10 +33,10 @@ export default function History(props: historyProps) {
                   justifyContent: 'space-around',
                 }}
               >
-                <p>
+                <p className={props.historyIndex === index ? styles['current-history-state']: ""}>
                   {whiteMove}
                 </p>
-                <p>
+                <p className={props.historyIndex === index + 1 ? styles['current-history-state']: ""}>
                   {blackMove}
                 </p>
               </span>
