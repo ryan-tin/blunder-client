@@ -26,15 +26,16 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
   const processor = useRef(Processor.Instance);
 
   // history of moves
-  const [moveHistoryFEN, setMoveHistoryFEN] = useState([{
+  const [moveHistory, setMoveHistory] = useState([{
     FEN: startingFEN,
     lastMove: {
       from: "" as coordinateType,
       to: "" as coordinateType
-    }
+    },
+    chessNotation: ""
   }] as historyEntry[]);
   const historyIndex = useRef(0);
-  const inHistory = historyIndex.current !== moveHistoryFEN.length - 1;
+  const inHistory = historyIndex.current !== moveHistory.length - 1;
 
   // timer states
   const [whiteTime, setWhiteTime] = useState(timeControl.totalTime * 60);
@@ -94,15 +95,21 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
 
     // listen for opponent moves
     // NOTE: also recieves your own moves
-    socket.on('send move', ({ FEN, lastMove, roomId, sentby }) => {
+    socket.on('send move', ({ FEN, lastMove, roomId, sentby, moveNotation }) => {
       // opponent sent FEN, update board
       setFEN(FEN);
       setLastMove(lastMove);
       processor.current.FEN = FEN;
+      processor.current.RELOAD();
       toggleTimers();
       // store new history
-      historyIndex.current = moveHistoryFEN.length;
-      setMoveHistoryFEN([...moveHistoryFEN, { FEN: FEN, lastMove: lastMove }])
+      historyIndex.current = moveHistory.length;
+      if (processor.current.checkmate) {
+        moveNotation += '#';
+      } else if (processor.current.kingCheckedPosition !== null) {
+        moveNotation += '+';
+      }
+      setMoveHistory([...moveHistory, { FEN: FEN, lastMove: lastMove, chessNotation: moveNotation }])
     })
 
     /**
@@ -126,12 +133,13 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
   }, [roomId, socket, timeControl]);
 
   // send move to opponent
-  function handleSendNextMove(newFEN: string, lastMove: lastMove) {
+  function handleSendNextMove(newFEN: string, lastMove: lastMove, moveNotation?: string) {
     let message = {
       roomId: roomId,
       sentBy: perspective,
       FEN: newFEN,
-      lastMove: lastMove
+      lastMove: lastMove,
+      moveNotation: moveNotation
     }
     // send FEN to opponent & yourself
     // update own board when the move arrives through socket
@@ -164,6 +172,16 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
     socket.emit('game end', roomId);
   };
 
+  /**
+   * ammend the chess notation
+   */
+  function appendNotation(suffix: string) {
+    // exactly the same except the move has the + sign
+    let append = moveHistory[moveHistory.length - 1];
+    append.chessNotation += suffix;
+    setMoveHistory([...moveHistory.slice(0, -1), append]);
+  }
+
   useEffect(() => {
     /**
      * use the arrow keys to move back and forth between history
@@ -176,17 +194,17 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
       if (event.key === "ArrowUp") {
         historyIndex.current = 0;
       } else if (event.key === "ArrowDown") {
-        historyIndex.current = moveHistoryFEN.length - 1;
+        historyIndex.current = moveHistory.length - 1;
       } else if (event.key === "ArrowLeft") {
         historyIndex.current = Math.max(historyIndex.current - 1, 0);
       } else if (event.key === "ArrowRight") {
-        historyIndex.current = Math.min(historyIndex.current + 1, moveHistoryFEN.length - 1);
+        historyIndex.current = Math.min(historyIndex.current + 1, moveHistory.length - 1);
       } else {
         // don't do anything if any other key is pressed
         return;
       }
-      setFEN(moveHistoryFEN[historyIndex.current].FEN);
-      setLastMove(moveHistoryFEN[historyIndex.current].lastMove);
+      setFEN(moveHistory[historyIndex.current].FEN);
+      setLastMove(moveHistory[historyIndex.current].lastMove);
     }
 
     window.addEventListener('keydown', handleKeyDown);
@@ -196,12 +214,6 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
 
   return (
     <div className={gamestyles.game}>
-      {
-        DEBUG &&
-        <h1>
-          {`total time: ${timeControl.totalTime}, increment: ${timeControl.increment}`}
-        </h1>
-      }
       <div className={gamestyles["timer-parent-container"]}>
         <Timer
           time={perspective === 'w' ? blackTime : whiteTime}
@@ -228,12 +240,10 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
         gameEnd={handleGameEnd}
         gameOverFlag={panelProps.timeOut.isTimeOver}
         inHistory={inHistory}
+        appendNotation={appendNotation}
       />
       <div className={gamestyles['history-parent-container']}>
-      {
-        DEBUG &&
-        <History moveHistory={moveHistoryFEN}/>
-      }
+        <History moveHistory={moveHistory} />
       </div>
     </div>
   );

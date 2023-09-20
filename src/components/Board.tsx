@@ -32,6 +32,7 @@ import squarestyles from '@/styles/Board.module.css';
 import { Processor } from '@/utils/Processor';
 import { getCoordFromCoordType } from '@/utils/regex';
 import CoordinateSquare from './CoordinateSquare';
+import { coordToChessNotation, pieceToChessNotation } from '@/utils/notation';
 
 interface boardProps {
   FEN: string;
@@ -41,6 +42,7 @@ interface boardProps {
   gameOverFlag: boolean;
   gameEnd: Function;
   inHistory: boolean;
+  appendNotation: Function
 }
 
 const DEBUG = false;
@@ -61,7 +63,6 @@ export default function Board(props: boardProps) {
   } else {
     // FEN changes when opponent sends it through the websocket
     // recompute values every time the FEN changes
-    processor.RELOAD();
     positionMap = processor.positionMap as boardType;
     checkPosition = processor.kingCheckedPosition as coordinateType;
   }
@@ -326,6 +327,7 @@ export default function Board(props: boardProps) {
   }
 
   function castleKing(currentPosition: coordinateType): void {
+    // currentPosition is the place clicked
     const castleDirection = validMoves.get(currentPosition);
 
     const matches = /(?<white>K?Q?)(?<black>k?q?)/.exec(fenComponents.castle!)!;
@@ -347,30 +349,35 @@ export default function Board(props: boardProps) {
     positionMap.delete(selectedPiece);
     const nextPosition = new Map(positionMap);
     let lastMove = { from: selectedPiece, to: null } as lastMove;
+    let moveNotation: string | null = null;
     switch (castleDirection) {
       case 'K':
         nextPosition.delete('0,7'); // remove the rook
         nextPosition.set('0,6', 'K');
         nextPosition.set('0,5', 'R');
         lastMove.to = '0,7';
+        moveNotation = "O-O"
         break;
       case 'Q':
         nextPosition.delete('0,0'); // remove the rook
         nextPosition.set('0,2', 'K');
         nextPosition.set('0,3', 'R');
         lastMove.to = '0,0';
+        moveNotation = "O-O-O"
         break;
       case 'k':
         nextPosition.delete('7,7'); // remove the rook
         nextPosition.set('7,6', 'k');
         nextPosition.set('7,5', 'r');
         lastMove.to = '7,7';
+        moveNotation = "O-O"
         break;
       case 'q':
         nextPosition.delete('7,0'); // remove the rook
         nextPosition.set('7,2', 'k');
         nextPosition.set('7,3', 'r');
         lastMove.to = '7,0';
+        moveNotation = "O-O-O"
         break;
     }
 
@@ -384,7 +391,7 @@ export default function Board(props: boardProps) {
       getFullMoveNumber(FEN)
     );
     // set new FEN to update the board position
-    props.sendMove(newFENString, lastMove);
+    props.sendMove(newFENString, lastMove, moveNotation);
     clear();
   }
 
@@ -400,9 +407,20 @@ export default function Board(props: boardProps) {
     const movedPiece: pieceType = positionMap.get(selectedPiece) as pieceType;
     const nextCastlingFEN = newCastlingFENPostRookOrKingMove(fenComponents.castle!, movedPiece, selectedPiece);
 
+    // find chess notation for history
+    let chessNotation = pieceToChessNotation(movedPiece);
+
     // move the piece
     positionMap.delete(selectedPiece);
+    // check if there is a piece in the destination
+    const pieceCaptured = positionMap.has(currentPosition);
     positionMap.set(currentPosition, movedPiece);
+
+    if (pieceCaptured) {
+      chessNotation += 'x' + coordToChessNotation(currentPosition);
+    } else {
+      chessNotation += coordToChessNotation(currentPosition);
+    }
 
     const lastMove = { from: selectedPiece, to: currentPosition };
 
@@ -425,7 +443,7 @@ export default function Board(props: boardProps) {
       getFullMoveNumber(FEN)
     );
     // set new FEN to update the board position
-    props.sendMove(newFENString, lastMove);
+    props.sendMove(newFENString, lastMove, chessNotation);
   }
 
   // clear valid moves and selected piece highlight
@@ -507,7 +525,8 @@ export default function Board(props: boardProps) {
         } else {
           lastMove.from = `${(parseInt(temp.rank) + 1).toString()},${temp.file}` as coordinateType;
         }
-        props.sendMove(nextFENString, lastMove);
+        let chessNotation = coordToChessNotation(promotionSquareCoord) + "=" + piece.toUpperCase()
+        props.sendMove(nextFENString, lastMove, chessNotation);
       }
     }
     // valid castling move is clicked

@@ -54,5 +54,6 @@ export interface timeControl {
 
 export interface historyEntry {
   FEN: string,
-  lastMove: lastMove
+  lastMove: lastMove,
+  chessNotation: string
 }
