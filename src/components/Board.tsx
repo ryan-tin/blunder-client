@@ -524,7 +524,6 @@ export default function Board(props: boardProps) {
         clear();
         setShowPromotion(false);
         let lastMove: lastMove = { from: selectedPiece, to: promotionSquareCoord };
-        let temp = getCoordFromCoordType(promotionSquareCoord);
         let chessNotation = coordToChessNotation(promotionSquareCoord) + "=" + piece.toUpperCase()
         props.sendMove(nextFENString, lastMove, chessNotation);
       } else {

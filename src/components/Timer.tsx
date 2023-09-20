@@ -1,6 +1,5 @@
 import { playerType } from "@/types/Types";
 import timerstyles from "@/styles/Timer.module.css";
-import { useState } from "react";
 
 interface timerProps {
   time: number
