@@ -1,7 +1,11 @@
 .timer {
-  margin: 5vh 0;
-  padding: 1vh;
+  height: auto;
+  width: auto;
+  padding: 0vh 1vh;
   background-color: var(--custom-color-brand);
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .timer-inactive {
@@ -9,7 +13,7 @@
 }
 
 .timer-font {
-  font-size: 3rem;
+  font-size: 2.5vmax;
   color: var(--custom-bg-color);
   font-family: "Noto Sans", Sans-Serif; /* monospace font to avoid wiggle */
 }

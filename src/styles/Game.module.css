@@ -7,7 +7,7 @@
 .timer-parent-container {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: space-evenly;
 }
 
 .history-parent-container {
@@ -22,4 +22,8 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
+}
+
+.panel-font {
+  font-size: 2.5vh;
 }

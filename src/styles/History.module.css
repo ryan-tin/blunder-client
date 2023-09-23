@@ -3,3 +3,7 @@
   padding: 1px 10px;
   color: var(--custom-bg-color);
 }
+
+.history-header-font {
+  font-size: 2vmax;
+}

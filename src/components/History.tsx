@@ -24,7 +24,7 @@ export default function History(props: historyProps) {
           return (
             <li key={index}
               style={{
-                margin: '0px 0',
+                margin: '0',
               }}
             >
               <span
@@ -33,10 +33,10 @@ export default function History(props: historyProps) {
                   justifyContent: 'space-around',
                 }}
               >
-                <p className={props.historyIndex === index ? styles['current-history-state']: ""}>
+                <p className={props.historyIndex === index ? styles['current-history-state'] : ""}>
                   {whiteMove}
                 </p>
-                <p className={props.historyIndex === index + 1 ? styles['current-history-state']: ""}>
+                <p className={props.historyIndex === index + 1 ? styles['current-history-state'] : ""}>
                   {blackMove}
                 </p>
               </span>

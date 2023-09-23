@@ -13,30 +13,29 @@ export interface PanelProps {
 
 export default function Panel({
   checkmate, winningPlayer, stalemate, timeOut }: PanelProps) {
-
   let message;
 
   if (checkmate) {
-    message = (
-      <p>Checkmate.<br />{winningPlayer === 'w' ? 'White is victorious.' : ' Black is victorious.'}</p>
-    );
+    message = `Checkmate. ${winningPlayer === 'w' ? 'White' : 'Black'} is victorious.`
   }
 
   if (stalemate) {
-    message = <p>Stalemate.<br />Draw.</p>;
+    message = 'Stalemate. Draw'
   }
 
   if (timeOut.isTimeOver) {
     if (timeOut.winner === 'w') {
-      message = <p>Black time out.<br />White is victorious.</p>;
+      message = "Black time out. White is victorious.";
     } else {
-      message = <p>White time out.<br />Black is victorious.</p>;
+      message = "White time out. Black is victorious.";
     }
   }
 
   return (
     <div className={styles['panel-parent-container']}>
-      {message}
+      <p className={styles['panel-font']}>
+        {message}
+      </p>
     </div>
   );
 }

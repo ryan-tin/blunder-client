@@ -203,37 +203,39 @@ export default function Game({ perspective, roomId, timeControl }: GameProps) {
   })
 
   return (
-    <div className={gamestyles.game}>
-      <div className={gamestyles["timer-parent-container"]}>
-        <Timer
-          time={perspective === 'w' ? blackTime : whiteTime}
-          player={perspective === 'w' ? 'b' : 'w'}
-          isActive={perspective === 'w' ? !whiteTimerActive : whiteTimerActive}
+    <div>
+      <div className={gamestyles.game}>
+        <div className={gamestyles["timer-parent-container"]}>
+          <Timer
+            time={perspective === 'w' ? blackTime : whiteTime}
+            player={perspective === 'w' ? 'b' : 'w'}
+            isActive={perspective === 'w' ? !whiteTimerActive : whiteTimerActive}
+          />
+          <Timer
+            time={perspective === 'w' ? whiteTime : blackTime}
+            player={perspective}
+            isActive={perspective === 'w' ? whiteTimerActive : !whiteTimerActive}
+          />
+        </div>
+        <Board
+          FEN={FEN}
+          lastMove={lastMove}
+          perspective={perspective}
+          sendMove={handleSendNextMove}
+          gameEnd={handleGameEnd}
+          gameOverFlag={panelProps.timeOut.isTimeOver}
+          inHistory={inHistory}
         />
-        <Panel
-          checkmate={panelProps.checkmate}
-          stalemate={panelProps.stalemate}
-          winningPlayer={panelProps.winningPlayer}
-          timeOut={panelProps.timeOut}
-        />
-        <Timer
-          time={perspective === 'w' ? whiteTime : blackTime}
-          player={perspective}
-          isActive={perspective === 'w' ? whiteTimerActive : !whiteTimerActive}
-        />
+        <div className={gamestyles['history-parent-container']}>
+          <History moveHistory={moveHistory} historyIndex={historyIndex.current} />
+        </div>
       </div>
-      <Board
-        FEN={FEN}
-        lastMove={lastMove}
-        perspective={perspective}
-        sendMove={handleSendNextMove}
-        gameEnd={handleGameEnd}
-        gameOverFlag={panelProps.timeOut.isTimeOver}
-        inHistory={inHistory}
+      <Panel
+        checkmate={panelProps.checkmate}
+        stalemate={panelProps.stalemate}
+        winningPlayer={panelProps.winningPlayer}
+        timeOut={panelProps.timeOut}
       />
-      <div className={gamestyles['history-parent-container']}>
-        <History moveHistory={moveHistory} historyIndex={historyIndex.current} />
-      </div>
     </div>
   );
 }
